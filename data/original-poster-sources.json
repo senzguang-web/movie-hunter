@@ -1,0 +1,242 @@
+[
+  {
+    "id": "soul",
+    "sourcePage": "https://en.wikipedia.org/wiki/Soul_(2020_film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/3/39/Soul_%282020_film%29_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/soul.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 17615
+  },
+  {
+    "id": "coco",
+    "sourcePage": "https://en.wikipedia.org/wiki/Coco_(2017_film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/9/98/Coco_%282017_film%29_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/coco.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 26048
+  },
+  {
+    "id": "amelie",
+    "sourcePage": "https://en.wikipedia.org/wiki/Am%C3%A9lie",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/5/53/Amelie_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/amelie.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 15165
+  },
+  {
+    "id": "walter-mitty",
+    "sourcePage": "https://en.wikipedia.org/wiki/The_Secret_Life_of_Walter_Mitty_(2013_film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/f/f2/The_Secret_Life_of_Walter_Mitty_2013_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/walter-mitty.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 23711
+  },
+  {
+    "id": "intouchables",
+    "sourcePage": "https://en.wikipedia.org/wiki/The_Intouchables",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/9/93/The_Intouchables.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/intouchables.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 12630
+  },
+  {
+    "id": "little-miss-sunshine",
+    "sourcePage": "https://en.wikipedia.org/wiki/Little_Miss_Sunshine",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/1/16/Little_miss_sunshine_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/little-miss-sunshine.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 14188
+  },
+  {
+    "id": "about-time",
+    "sourcePage": "https://en.wikipedia.org/wiki/About_Time_(2013_film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/7/7c/About_Time_%282013_film%29_Poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/about-time.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 15459
+  },
+  {
+    "id": "grand-budapest",
+    "sourcePage": "https://en.wikipedia.org/wiki/The_Grand_Budapest_Hotel",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/1/1c/The_Grand_Budapest_Hotel.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/grand-budapest.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 20904
+  },
+  {
+    "id": "perfect-days",
+    "sourcePage": "https://en.wikipedia.org/wiki/Perfect_Days",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/c/c9/Perfect_Days_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/perfect-days.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 16649
+  },
+  {
+    "id": "sing-street",
+    "sourcePage": "https://en.wikipedia.org/wiki/Sing_Street",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/2/2c/Sing_Street_poster.jpeg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/sing-street.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 22319
+  },
+  {
+    "id": "singin-rain",
+    "sourcePage": "https://en.wikipedia.org/wiki/Singin'_in_the_Rain",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Singin%27_in_the_Rain_%281952_poster%29.jpg/330px-Singin%27_in_the_Rain_%281952_poster%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "localPath": "miniprogram/assets/posters/singin-rain.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 34501
+  },
+  {
+    "id": "paddington-2",
+    "sourcePage": "https://en.wikipedia.org/wiki/Paddington_2",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/b/b6/Paddington_2_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/paddington-2.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 16265
+  },
+  {
+    "id": "inception",
+    "sourcePage": "https://en.wikipedia.org/wiki/Inception",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/2/2e/Inception_%282010%29_theatrical_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/inception.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 18180
+  },
+  {
+    "id": "knives-out",
+    "sourcePage": "https://en.wikipedia.org/wiki/Knives_Out",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/1/1f/Knives_Out_poster.jpeg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/knives-out.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 22969
+  },
+  {
+    "id": "truman-show",
+    "sourcePage": "https://en.wikipedia.org/wiki/The_Truman_Show",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/c/cd/Trumanshow.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/truman-show.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 17737
+  },
+  {
+    "id": "groundhog-day",
+    "sourcePage": "https://en.wikipedia.org/wiki/Groundhog_Day_(film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/b/b1/Groundhog_Day_%28movie_poster%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/groundhog-day.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 20852
+  },
+  {
+    "id": "interstellar",
+    "sourcePage": "https://en.wikipedia.org/wiki/Interstellar_(film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/b/bc/Interstellar_film_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/interstellar.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 15700
+  },
+  {
+    "id": "arrival",
+    "sourcePage": "https://en.wikipedia.org/wiki/Arrival_(film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/d/df/Arrival%2C_Movie_Poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/arrival.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 12679
+  },
+  {
+    "id": "spirited-away",
+    "sourcePage": "https://en.wikipedia.org/wiki/Spirited_Away",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/d/db/Spirited_Away_Japanese_poster.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/spirited-away.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 24487
+  },
+  {
+    "id": "totoro",
+    "sourcePage": "https://en.wikipedia.org/wiki/My_Neighbor_Totoro",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/0/02/My_Neighbor_Totoro_-_Tonari_no_Totoro_%28Movie_Poster%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/totoro.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 17230
+  },
+  {
+    "id": "fantastic-mr-fox",
+    "sourcePage": "https://en.wikipedia.org/wiki/Fantastic_Mr._Fox_(film)",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/a/af/Fantastic_mr_fox.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/fantastic-mr-fox.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 21715
+  },
+  {
+    "id": "before-sunrise",
+    "sourcePage": "https://en.wikipedia.org/wiki/Before_Sunrise",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/d/da/Before_Sunrise_poster.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/before-sunrise.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 15918
+  },
+  {
+    "id": "12-angry-men",
+    "sourcePage": "https://en.wikipedia.org/wiki/12_Angry_Men",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/12_Angry_Men_%281957_film_poster%29.jpg/330px-12_Angry_Men_%281957_film_poster%29.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "localPath": "miniprogram/assets/posters/12-angry-men.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 33340
+  },
+  {
+    "id": "chungking-express",
+    "sourcePage": "https://en.wikipedia.org/wiki/Chungking_Express",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/en/c/c0/Chungking_Express.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "localPath": "miniprogram/assets/posters/chungking-express.jpg",
+    "licenseOrUsage": "Copyrighted movie promotional artwork. Local development preview only. Not cleared for commercial use. Verify and obtain applicable rights before production publication.",
+    "fetchedOn": "2026-10-03",
+    "status": "downloaded",
+    "bytes": 11938
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "paddington-2": {
+    "title": "Paddington 2",
+    "sourceOrganization": "STUDIOCANAL Intl",
+    "sourcePage": "https://app.powster.com/studiocanalintl/paddington-2/gb/",
+    "imageURL": "https://dx35vtwkllhj9.cloudfront.net/studiocanalintl/paddington-2/images/regions/gb/onesheet.jpg",
+    "localPath": "web/assets/posters/paddington-2.jpg",
+    "checkedAt": "2026-10-03",
+    "width": 716,
+    "height": 1075,
+    "sha256": "c10f0aa588310cb777ea9d824359c8ee554005da7b273bae0944c7cf573d2e13",
+    "evidence": "The official STUDIOCANAL Intl UK campaign page directly embeds this CDN image as its Paddington 2 one-sheet. The page footer identifies STUDIOCANAL and links to the studio's terms and website.",
+    "assetType": "official UK theatrical portrait one-sheet",
+    "modifications": "None; original downloaded file.",
+    "rights": "Copyright remains with STUDIOCANAL and the named rights holders; this source record is provenance, not a public-domain or redistribution-license claim."
+  }
+}

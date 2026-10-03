@@ -1,0 +1,105 @@
+/* One continuous light field, independent of the stable interactive content. */
+#cinema-atmosphere {
+  --atmosphere-x: 0px;
+  --atmosphere-y: 0px;
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  background: #000;
+  isolation: isolate;
+  contain: strict;
+}
+#cinema-atmosphere *, #cinema-atmosphere *::before, #cinema-atmosphere *::after {
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.atmosphere-stars, .atmosphere-parallax, .atmosphere-vignette { position: absolute; inset: 0; }
+.atmosphere-stars { opacity: .68; transition: opacity 2.4s ease; }
+.atmosphere-star {
+  position: absolute;
+  left: var(--star-x);
+  top: var(--star-y);
+  width: var(--star-size);
+  height: var(--star-size);
+  border-radius: 50%;
+  background: #e2e5eb;
+  opacity: var(--star-opacity);
+  box-shadow: 0 0 5px #91abce24;
+  animation: atmosphere-starlight var(--star-duration) ease-in-out var(--star-delay) infinite;
+}
+.atmosphere-parallax {
+  transform: translate3d(var(--atmosphere-x), var(--atmosphere-y), 0);
+  transition: transform 2s cubic-bezier(.2,.65,.2,1);
+}
+.atmosphere-optics {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  width: max(1500px, 144vw);
+  aspect-ratio: 18 / 11;
+  transform: translateX(-50%);
+  opacity: .78;
+  transition: opacity 2.4s ease;
+}
+.atmosphere-arc {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  animation: atmosphere-light-breathe 19s ease-in-out infinite;
+}
+/* Both diffuse strokes follow the same open curve; there are no concentric rings. */
+.atmosphere-arc-diffusion { filter: blur(19px); opacity: .18; }
+.atmosphere-arc-bloom { filter: blur(4px); opacity: .27; }
+.atmosphere-arc-edge { opacity: .66; }
+.atmosphere-haze {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 40% 24% at 48% 25%, #91abce0c 0%, #a3abb806 33%, transparent 75%);
+  opacity: .85;
+  animation: atmosphere-haze-breathe 25s ease-in-out -9s infinite;
+}
+.atmosphere-vignette {
+  background: linear-gradient(#0005, transparent 24%, transparent 66%, #000a), radial-gradient(ellipse at 50% 48%, transparent 42%, #0003 82%, #0008 100%);
+}
+/* Keep the space in place as the story changes; only the light quietens. */
+body[data-view="questions"] .atmosphere-optics { opacity: .54; }
+body[data-view="questions"] .atmosphere-stars { opacity: .46; }
+body[data-view="reveal"] .atmosphere-optics { opacity: .9; }
+body[data-view="results"] .atmosphere-optics { opacity: .54; }
+body[data-view="results"] .atmosphere-stars { opacity: .52; }
+body[data-view="chosen"] .atmosphere-optics { opacity: .64; }
+body[data-view="saved"] .atmosphere-optics { opacity: .4; }
+body.detail-open .atmosphere-optics { opacity: .34; }
+body.motion-paused #cinema-atmosphere *, #cinema-atmosphere.atmosphere-paused * { animation-play-state: paused !important; }
+body.motion-paused #cinema-atmosphere .atmosphere-parallax, #cinema-atmosphere.atmosphere-paused .atmosphere-parallax { transition: none; }
+@keyframes atmosphere-starlight {
+  0%, 100% { opacity: var(--star-opacity); }
+  50% { opacity: calc(var(--star-opacity) * .62); }
+}
+@keyframes atmosphere-light-breathe {
+  0%, 100% { opacity: .72; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+@keyframes atmosphere-haze-breathe {
+  0%, 100% { opacity: .65; }
+  50% { opacity: .95; }
+}
+@media (max-width: 700px) {
+  .atmosphere-optics { width: 1120px; left: 48%; top: 11%; }
+  .atmosphere-haze { background: radial-gradient(ellipse 34% 24% at 48% 25%, #91abce0a, transparent 75%); }
+  .atmosphere-star:nth-child(n+19) { display: none; }
+  .atmosphere-arc-diffusion { filter: blur(13px); }
+  .atmosphere-arc-edge { opacity: .55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #cinema-atmosphere *, #cinema-atmosphere *::before, #cinema-atmosphere *::after { animation: none !important; transition: none !important; }
+  #cinema-atmosphere .atmosphere-parallax { transform: none; }
+}

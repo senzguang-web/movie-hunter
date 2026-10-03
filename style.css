@@ -472,3 +472,19 @@ body.motion-paused .scene-layer, body.motion-paused .question-option, body.motio
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Recommendation rounds keep the same open, quiet space. */
+.hero-rating { display: flex; align-items: baseline; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: #bec8d8; font-size: 12px; line-height: 1.8; }
+.hero-rating a { color: inherit; text-decoration: none; }
+.hero-rating a:hover { color: #fff; }
+.hero-rating strong { margin-left: 6px; color: #eee6ce; font-weight: 500; font-size: 17px; }
+.hero-rating a span, .rating-edition { color: #929daa; font-size: 10px; }
+.hero-rating.is-unrated { color: #929daa; font-size: 11px; }
+.batch-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; }
+.batch-note { width: min(620px, calc(100% - 44px)); margin: 12px auto 0; color: #96a1b0; text-align: center; font-size: 11px; line-height: 1.9; }
+@media (max-width: 700px) {
+  .hero-rating { justify-content: center; font-size: 11px; }
+  .batch-note { order: 6; font-size: 10px; }
+  .batch-actions { gap: 3px 14px; }
+  .batch-actions .text-button { min-height: 44px; }
+}

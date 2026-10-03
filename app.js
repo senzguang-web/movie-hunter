@@ -26,10 +26,11 @@
   const dateKey = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   function safeUrl(value) { try { const url=new URL(value);return url.protocol==='https:'?esc(url.href):''; } catch { return ''; } }
   function readHistory() {
-    const result={savedIds:[],likedIds:[],seenIds:[],dislikedIds:[],chosen:null,motionPaused:false,locale:'zh'};
+    const result={savedIds:[],likedIds:[],seenIds:[],dislikedIds:[],recommendedIds:[],round:0,chosen:null,motionPaused:false,locale:'zh'};
     try {
       const stored=JSON.parse(localStorage.getItem(storageKey)||'{}');
-      for(const key of ['savedIds','likedIds','seenIds','dislikedIds'])if(Array.isArray(stored?.[key]))result[key]=[...new Set(stored[key])].filter(movieById);
+      for(const key of ['savedIds','likedIds','seenIds','dislikedIds','recommendedIds'])if(Array.isArray(stored?.[key]))result[key]=[...new Set(stored[key])].filter(movieById);
+      if(Number.isSafeInteger(stored?.round)&&stored.round>=0)result.round=stored.round;
       if(movieById(stored?.chosen?.id))result.chosen=stored.chosen;
       result.motionPaused=stored?.motionPaused===true;
       result.locale=stored?.locale==='en'?'en':'zh';
@@ -46,7 +47,7 @@
   const countryLabel=id=>id==='LU'?t('卢森堡','Luxembourg'):label(countryNames,id);
   const duration=minutes=>minutes+t(' 分钟',' min');
   const movieMeta=movie=>[movie.year,(movie.countries||[]).map(countryLabel).join(' / '),duration(movie.minutes)].filter(Boolean).join(' · ');
-  const state={view:'home',draft:'',step:0,answers:{desired:null,genre:null,countries:[],maxMinutes:null},query:null,completed:false,ranked:[],activeIndex:0,chosenId:null,libraryTab:'saved',detailId:null,detailTrigger:null,ratings:{},transitioning:false,switching:false,dirtyResults:false,railScroll:0,expanded:{genre:false,countries:false}};
+  const state={view:'home',draft:'',interviewText:'',step:0,answers:{desired:null,genre:null,countries:[],maxMinutes:null},query:null,completed:false,ranked:[],batchInfo:null,presentedIds:[],batchSeed:0,batchDate:'',pendingBatch:false,resetRail:false,activeIndex:0,chosenId:null,libraryTab:'saved',detailId:null,detailTrigger:null,ratings:{},transitioning:false,switching:false,dirtyResults:false,railScroll:0,expanded:{genre:false,countries:false}};
   let toastTimer,detailRequest=0,composingMood=false,touchStart=null,suppressClickUntil=0;
   const motionOff=()=>reducedMotion.matches||history.motionPaused;
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -149,13 +150,40 @@
     const text=document.getElementById('mood-input').value.trim();
     if(!text){document.getElementById('mood-error').textContent=t('写下一句心情，再继续。','Write a little about your mood to continue.');document.getElementById('mood-input').focus();return;}
     if(!engine){toast(t('选片功能尚未加载，请刷新后重试。','Please refresh to load the recommendations.'));return;}
-    state.draft=text;transition(()=>{state.step=0;renderQuestion();});
+    if(text!==state.interviewText){state.answers.desired=null;state.answers.genre=null;}
+    state.draft=text;state.interviewText=text;transition(()=>{state.step=0;renderQuestion();});
   }
   function refreshRanking(preserve=true) {
     const current=preserve?state.ranked[state.activeIndex]?.movie.id:null;
-    state.ranked=engine.recommend({...state.query,locale:history.locale},history,{dateKey:dateKey()});
+    const query={...state.query,locale:history.locale},context={dateKey:state.batchDate,seed:state.batchSeed,ratings:snapshots};
+    const allowed=new Set(engine.rankBatchCandidates(query,history,context).map(entry=>entry.movie.id));
+    // Feedback only removes ineligible films from the current round. It never
+    // spends a new batch or changes the order while someone is browsing.
+    state.ranked=state.ranked.filter(entry=>allowed.has(entry.movie.id));
+    if(state.batchInfo)state.batchInfo={...state.batchInfo,eligibleCount:allowed.size};
     const index=state.ranked.findIndex(entry=>entry.movie.id===current);
     state.activeIndex=index>=0?index:Math.min(state.activeIndex,Math.max(0,state.ranked.length-1));state.dirtyResults=false;
+  }
+  function createBatch() {
+    const previousIds=state.presentedIds;
+    state.batchSeed=history.round+1;state.batchDate=dateKey();
+    state.batchInfo=engine.recommendBatch({...state.query,locale:history.locale},history,{size:7,dateKey:state.batchDate,seed:state.batchSeed,previousIds,ratings:snapshots});
+    state.ranked=state.batchInfo.entries;state.activeIndex=0;state.railScroll=0;state.resetRail=true;state.dirtyResults=false;state.pendingBatch=true;
+  }
+  function rememberBatch() {
+    if(!state.pendingBatch)return;
+    state.pendingBatch=false;
+    if(!state.ranked.length)return;
+    state.presentedIds=state.ranked.map(entry=>entry.movie.id);
+    history.round=state.batchSeed;
+    history.recommendedIds=[...new Set([...history.recommendedIds,...state.ranked.map(entry=>entry.movie.id)])];
+    persist();
+  }
+  async function changeBatch() {
+    if(state.transitioning||state.switching||!state.query)return;
+    closeDetail(false);createBatch();
+    await transition(renderReveal);await delay(motionOff()?120:700);
+    if(state.view==='reveal')await transition(renderResults);
   }
   function renderReveal() {
     state.view='reveal';updateChrome();
@@ -164,7 +192,7 @@
   async function finishQuestions() {
     if(state.transitioning)return;
     state.query={text:state.draft,desired:state.answers.desired,genre:state.answers.genre==='any'?'':state.answers.genre,countries:[...state.answers.countries],maxMinutes:Number(state.answers.maxMinutes)};
-    state.activeIndex=0;refreshRanking(false);state.completed=true;state.railScroll=0;
+    createBatch();state.completed=true;
     await transition(renderReveal);await delay(motionOff()?120:1200);
     if(state.view==='reveal')await transition(renderResults);
   }
@@ -177,9 +205,15 @@
     const movie=state.ranked[(state.activeIndex+offset+state.ranked.length)%state.ranked.length].movie;
     return '<button class="side-film '+(offset<0?'side-prev':'side-next')+'" data-direction="'+offset+'" aria-label="'+esc((offset<0?t('上一部：','Previous: '):t('下一部：','Next: '))+title(movie))+'"><img src="'+poster(movie)+'" alt="" draggable="false"/><span class="side-label">'+(offset<0?t('上一段故事','PREVIOUS STORY'):t('下一段故事','NEXT STORY'))+'</span><span class="side-title">'+esc(title(movie))+'</span></button>';
   }
+  function featuredRating(entry) {
+    const rating=entry.quality;
+    if(!rating)return '<p class="hero-rating is-unrated">'+t('暂无核验评分','No verified rating yet')+'</p>';
+    const source=rating.platform==='douban'?t('豆瓣','Douban'):'IMDb';
+    return '<p class="hero-rating"><a href="'+safeUrl(rating.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(t('查看'+source+'评分来源','Open the '+source+' rating source'))+'">'+esc(source)+' <strong>'+esc(rating.value)+'</strong><span> / 10</span></a><span class="rating-edition">'+t('评分快照','Rating snapshot')+'</span></p>';
+  }
   function featureMarkup() {
     const entry=state.ranked[state.activeIndex],movie=entry.movie;
-    return sideFilm(-1)+'<article class="hero-film" data-film="'+movie.id+'"><img class="film-aura" src="'+poster(movie)+'" alt="" aria-hidden="true"/><button class="hero-poster-button" data-detail="'+movie.id+'" aria-label="'+esc(t('了解《'+title(movie)+'》','Explore '+title(movie)))+'"><img class="hero-poster" src="'+poster(movie)+'" alt="'+esc(title(movie)+t('海报',' poster'))+'" width="600" height="900" draggable="false"/><span class="poster-edge" aria-hidden="true"></span></button><div class="hero-copy"><p class="hero-index">'+(state.activeIndex===0?t('今晚，先看这一部','YOUR FIRST PICK'):t('另一种可能','ANOTHER POSSIBILITY'))+'</p><h2 class="hero-title">'+esc(title(movie))+'</h2><p class="hero-original">'+esc(secondaryTitle(movie))+'</p><p class="hero-meta">'+esc(movieMeta(movie))+'</p><div class="hero-story"><p class="hero-reason-label">'+t('为此刻的你','WHY THIS STORY')+'</p><p class="hero-reason">'+esc(entry.shortReason||entry.reasons[0])+'</p><p class="hero-synopsis">'+esc(pitch(movie))+'</p></div><div class="hero-actions"><button class="primary-button" data-action="choose-movie" data-id="'+movie.id+'">'+icon('play')+t('就看这部','This is the one')+'</button><button class="secondary-button" data-detail="'+movie.id+'">'+t('了解这部','Explore this film')+icon('next')+'</button><button class="text-button" data-save="'+movie.id+'" aria-pressed="'+history.savedIds.includes(movie.id)+'">'+icon('bookmark')+(history.savedIds.includes(movie.id)?t('已想看','Saved'):t('想看','Save'))+'</button></div></div></article>'+sideFilm(1);
+    return sideFilm(-1)+'<article class="hero-film" data-film="'+movie.id+'"><img class="film-aura" src="'+poster(movie)+'" alt="" aria-hidden="true"/><button class="hero-poster-button" data-detail="'+movie.id+'" aria-label="'+esc(t('了解《'+title(movie)+'》','Explore '+title(movie)))+'"><img class="hero-poster" src="'+poster(movie)+'" alt="'+esc(title(movie)+t('海报',' poster'))+'" width="600" height="900" draggable="false"/><span class="poster-edge" aria-hidden="true"></span></button><div class="hero-copy"><p class="hero-index">'+(state.activeIndex===0?t('今晚，先看这一部','YOUR FIRST PICK'):t('另一种可能','ANOTHER POSSIBILITY'))+'</p><h2 class="hero-title">'+esc(title(movie))+'</h2><p class="hero-original">'+esc(secondaryTitle(movie))+'</p><p class="hero-meta">'+esc(movieMeta(movie))+'</p>'+featuredRating(entry)+'<div class="hero-story"><p class="hero-reason-label">'+t('为此刻的你','WHY THIS STORY')+'</p><p class="hero-reason">'+esc(entry.shortReason||entry.reasons[0])+'</p><p class="hero-synopsis">'+esc(pitch(movie))+'</p></div><div class="hero-actions"><button class="primary-button" data-action="choose-movie" data-id="'+movie.id+'">'+icon('play')+t('就看这部','This is the one')+'</button><button class="secondary-button" data-detail="'+movie.id+'">'+t('了解这部','Explore this film')+icon('next')+'</button><button class="text-button" data-save="'+movie.id+'" aria-pressed="'+history.savedIds.includes(movie.id)+'">'+icon('bookmark')+(history.savedIds.includes(movie.id)?t('已想看','Saved'):t('想看','Save'))+'</button></div></div></article>'+sideFilm(1);
   }
   function railMarkup() {
     const start=Math.max(0,Math.min(state.activeIndex-3,state.ranked.length-7));
@@ -188,13 +222,21 @@
       return '<button class="rail-film" data-feature="'+index+'" aria-current="'+(index===state.activeIndex)+'" aria-label="'+esc(t('切换到《'+title(movie)+'》','Show '+title(movie)))+'"><img src="'+poster(movie)+'" alt="" loading="lazy" draggable="false"/><span>'+esc(title(movie))+'</span></button>';
     }).join('');
   }
+  function batchNote() {
+    if(!state.ranked.length||state.ranked.length>=7)return '';
+    const limited=(state.batchInfo?.eligibleCount||0)<=state.ranked.length;
+    return '<p class="batch-note">'+(limited?t('符合这些条件的候选只有 '+state.ranked.length+' 部，片长与偏好仍按你的选择。','Only '+state.ranked.length+' films fit these choices. Your time limit and preferences still apply.'):t('这一轮还剩 '+state.ranked.length+' 部，也可以换一批继续探索。',state.ranked.length+' films remain in this round. Try another selection to keep exploring.'))+'</p>';
+  }
   function renderResults() {
     if(!state.query){renderHome();return;}if(state.dirtyResults)refreshRanking();
-    const oldRail=root.querySelector('.film-rail');if(oldRail)state.railScroll=oldRail.scrollLeft;
-    state.view='results';updateChrome();
-    const heading='<div class="explore-heading"><h1>'+t('一个故事，恰好此刻。','One story. This moment.')+'</h1>'+(state.ranked.length?'<p class="explore-subtitle">'+t('从 '+state.ranked.length+' 部符合偏好的电影里，找到今晚这一部。',(state.ranked.length===1?'One story fits your choices tonight.':'Find tonight’s film among '+state.ranked.length+' stories that fit your choices.'))+'</p>':'')+'</div>';
-    if(!state.ranked.length){root.innerHTML='<section class="spotlight-scene">'+heading+'<div class="empty-state"><h2>'+t('还没有符合这些条件的电影。','No films match these choices yet.')+'</h2><p>'+t('试着调整国家／地区、类型或时长。我们不会为了补足数量而放宽条件。','Try different regions, a genre, or a longer running time. We’ll keep your choices as limits.')+'</p><button class="primary-button" data-action="edit-answers">'+t('调整偏好','Edit choices')+'</button></div></section>';return;}
-    root.innerHTML='<section class="spotlight-scene">'+heading+'<div class="spotlight-stage" tabindex="0" role="region" aria-roledescription="carousel" aria-label="'+t('电影推荐，使用左右方向键或滑动切换','Film recommendations. Use left and right arrows or swipe to explore.')+'">'+featureMarkup()+'</div><div class="film-navigation"><button class="carousel-arrow" data-direction="-1" aria-label="'+t('上一部电影','Previous film')+'" '+(state.ranked.length<2?'disabled':'')+'>'+icon('back')+'</button><div class="film-counter"><strong>'+String(state.activeIndex+1).padStart(2,'0')+'</strong><span> / '+String(state.ranked.length).padStart(2,'0')+'</span></div><button class="carousel-arrow" data-direction="1" aria-label="'+t('下一部电影','Next film')+'" '+(state.ranked.length<2?'disabled':'')+'>'+icon('next')+'</button></div><p class="carousel-hint">'+t('左右切换，让下一段故事走近。','Move left or right. Let another story come closer.')+'</p><div class="film-rail" role="group" aria-label="'+t('其他候选电影','Other films to explore')+'">'+railMarkup()+'</div><div class="explore-tools"><p>'+esc(querySummary())+'</p><button class="text-button" data-action="edit-answers">'+t('调整偏好','Edit choices')+'</button></div><p class="sr-only" id="film-announcement" role="status" aria-live="polite"></p></section>';
+    const oldRail=root.querySelector('.film-rail');if(oldRail&&!state.resetRail)state.railScroll=oldRail.scrollLeft;
+    state.resetRail=false;state.view='results';rememberBatch();updateChrome();
+    const heading='<div class="explore-heading"><h1>'+t('一个故事，恰好此刻。','One story. This moment.')+'</h1>'+(state.ranked.length?'<p class="explore-subtitle">'+t('为这次心境，挑选 '+state.ranked.length+' 部电影 · 高分优先',state.ranked.length+' films for this mood · Highly rated picks first')+'</p>':'')+'</div>';
+    if(!state.ranked.length){
+      const hasMore=state.batchInfo?.eligibleCount>0;
+      root.innerHTML='<section class="spotlight-scene">'+heading+'<div class="empty-state"><h2>'+(hasMore?t('这一轮已经探索完了。','You’ve explored this round.'):t('还没有符合这些条件的电影。','No films match these choices yet.'))+'</h2><p>'+(hasMore?t('继续按这次的心境，挑选下一组故事。','Keep the same mood and discover another selection.'):t('试着调整国家／地区、类型或时长。我们不会为了补足数量而放宽条件。','Try different regions, a genre, or a longer running time. We’ll keep your choices as limits.'))+'</p>'+(hasMore?'<button class="primary-button" data-action="refresh-batch">'+t('换一批推荐','Another selection')+'</button>':'')+'<button class="text-button" data-action="edit-answers">'+t('调整偏好','Edit choices')+'</button></div></section>';return;
+    }
+    root.innerHTML='<section class="spotlight-scene">'+heading+'<div class="spotlight-stage" tabindex="0" role="region" aria-roledescription="carousel" aria-label="'+t('电影推荐，使用左右方向键或滑动切换','Film recommendations. Use left and right arrows or swipe to explore.')+'">'+featureMarkup()+'</div><div class="film-navigation"><button class="carousel-arrow" data-direction="-1" aria-label="'+t('上一部电影','Previous film')+'" '+(state.ranked.length<2?'disabled':'')+'>'+icon('back')+'</button><div class="film-counter"><strong>'+String(state.activeIndex+1).padStart(2,'0')+'</strong><span> / '+String(state.ranked.length).padStart(2,'0')+'</span></div><button class="carousel-arrow" data-direction="1" aria-label="'+t('下一部电影','Next film')+'" '+(state.ranked.length<2?'disabled':'')+'>'+icon('next')+'</button></div><p class="carousel-hint">'+t('左右切换，让下一段故事走近。','Move left or right. Let another story come closer.')+'</p><div class="film-rail" role="group" aria-label="'+t('本轮候选电影','Films in this round')+'">'+railMarkup()+'</div><div class="explore-tools"><p>'+esc(querySummary())+'</p><div class="batch-actions"><button class="text-button" data-action="refresh-batch">'+t('换一批推荐','Another selection')+'</button><button class="text-button" data-action="new-mood">'+t('说说新的心情','A different mood')+'</button><button class="text-button" data-action="edit-answers">'+t('调整偏好','Edit choices')+'</button></div></div>'+batchNote()+'<p class="sr-only" id="film-announcement" role="status" aria-live="polite"></p></section>';
     const rail=root.querySelector('.film-rail');rail.scrollLeft=state.railScroll;
     rail.addEventListener('scroll',()=>state.railScroll=rail.scrollLeft,{passive:true});
   }
@@ -303,7 +345,7 @@
     root.innerHTML='<section class="library"><p class="scene-eyebrow">'+t('你留下的故事','STORIES YOU KEPT')+'</p><h1 class="glow-heading">'+t('我的片单','Your collection')+'</h1><div class="library-tabs" role="group" aria-label="'+t('片单分类','Collection categories')+'">'+[['saved',t('想看','Watchlist')],['liked',t('喜欢','Liked')],['seen',t('看过','Watched')],['disliked',t('不感兴趣','Not for me')]].map(([id,name])=>'<button class="filter-chip '+(state.libraryTab===id?'active':'')+'" data-library-tab="'+id+'" aria-pressed="'+(state.libraryTab===id)+'">'+name+' '+history[id+'Ids'].length+'</button>').join('')+'</div>'+(movies.length?'<div class="library-list">'+movies.map(movie=>'<article class="library-row"><div><button class="library-row-title" data-detail="'+movie.id+'">'+esc(title(movie))+'</button><p class="library-row-info">'+esc(movieMeta(movie))+'</p></div>'+(['seen','disliked'].includes(state.libraryTab)?'<button class="text-button" data-restore="'+movie.id+'">'+t('重新加入推荐','Include in recommendations')+'</button>':'<button class="text-button" data-save="'+movie.id+'">'+(history.savedIds.includes(movie.id)?t('移出想看','Remove from watchlist'):t('加入想看','Save to watchlist'))+'</button>')+'</article>').join('')+'</div>':'<div class="empty-state"><p>'+t('遇见想看的故事时，把它留在这里。','When a story catches your eye, keep it here.')+'</p><button class="primary-button" data-nav="results">'+t('回到电影空间','Back to the films')+'</button></div>')+'</section>';
   }
   function renderAbout() {
-    aboutDialog.innerHTML='<button class="detail-close" data-action="close-about" aria-label="'+t('关闭说明','Close information')+'">'+icon('x')+'</button><h2 id="about-title">'+t('选片，有理由可循。','Every pick has a reason.')+'</h2><h3>'+t('从心情出发，走进世界电影','Your mood. A world of cinema.')+'</h3><p>'+t('从 '+catalog.length+' 部精选电影中，结合心情、观影目标、类型、制片国家／地区、时长与本机喜好记录来推荐。国家／地区可多选，合拍片匹配任一所选地区；不限时探索完整片库。不是全网检索，片库仍会有未覆盖的地区。','We recommend from '+catalog.length+' curated films using your mood, viewing goal, genre, production regions, time limit and saved preferences. Select multiple regions; a co-production matches any one. “Anywhere” explores the whole collection. This is a curated collection, not a search across every film in the world.')+'</p><h3>'+t('国家／地区怎样排序','How regions are ordered')+'</h3><p>'+t('常用国家／地区优先展示，其余收在更多选项中。各组内按本片库已核验的豆瓣或 IMDb 8.0 分及以上影片数量排序，同一影片不因多个评分重复计数；合拍片计入每个制片地区。数量相同则参考片库收录数量。这是当前精选片库的统计，不是全球电影质量排名；未取得评分的电影不计入高分数量。','Common production regions appear first; all others remain available under more options. Within each group, regions are ordered by the number of films with a sourced Douban or IMDb score of at least 8.0. Each film counts once per production region; co-productions count in each region. Ties use collection size. This describes our curated collection, not a global ranking. Films without verified scores are not counted as highly rated.')+'</p><h3>'+t('有来源的评分','Sourced ratings')+'</h3><p>'+t('演示模式展示已有核验快照，缺失分数不作填补。每项评分可打开来源，核验日期不代表源站当天更新。国家／地区按制作归属记录，不代表对白语言。','Demo mode shows sourced rating snapshots. Missing ratings remain empty. Each score links to its source; the checked date is not a promise of a current score. Production regions do not imply a film’s spoken language.')+'</p><h3>'+t('你的偏好，留在本机','Your preferences stay here')+'</h3><p>'+t('心情使用中英文关键词与标签匹配，复杂表达可能理解不完整。切换界面语言不会改变电影的语言，也不会清空当前问答。语言偏好、收藏和喜好保存在当前浏览器。','Mood matching uses Chinese and English keywords and editorial tags; complex expressions may be missed. Switching the interface language does not change a film’s spoken language or clear your answers. Your language, watchlist and taste are saved in this browser.')+'</p><h3>'+t('按你的节奏探索','Explore at your own pace')+'</h3><p>'+t('使用左右按钮、方向键或手机滑动切换主推荐。可暂停漂浮，也会遵循系统减少动态效果设置。','Use the arrows, keyboard arrow keys or a horizontal swipe to change the featured film. Motion can be paused and follows your system’s reduced-motion setting.')+'</p>';
+    aboutDialog.innerHTML='<button class="detail-close" data-action="close-about" aria-label="'+t('关闭说明','Close information')+'">'+icon('x')+'</button><h2 id="about-title">'+t('选片，有理由可循。','Every pick has a reason.')+'</h2><h3>'+t('从心情出发，走进世界电影','Your mood. A world of cinema.')+'</h3><p>'+t('从 '+catalog.length+' 部精选电影中，结合心情、观影目标、类型、制片国家／地区、时长与本机喜好记录来推荐。国家／地区可多选，合拍片匹配任一所选地区；不限时探索完整片库。不是全网检索，片库仍会有未覆盖的地区。','We recommend from '+catalog.length+' curated films using your mood, viewing goal, genre, production regions, time limit and saved preferences. Select multiple regions; a co-production matches any one. “Anywhere” explores the whole collection. This is a curated collection, not a search across every film in the world.')+'</p><h3>'+t('国家／地区怎样排序','How regions are ordered')+'</h3><p>'+t('常用国家／地区优先展示，其余收在更多选项中。各组内按本片库已核验的豆瓣或 IMDb 8.0 分及以上影片数量排序，同一影片不因多个评分重复计数；合拍片计入每个制片地区。数量相同则参考片库收录数量。这是当前精选片库的统计，不是全球电影质量排名；未取得评分的电影不计入高分数量。','Common production regions appear first; all others remain available under more options. Within each group, regions are ordered by the number of films with a sourced Douban or IMDb score of at least 8.0. Each film counts once per production region; co-productions count in each region. Ties use collection size. This describes our curated collection, not a global ranking. Films without verified scores are not counted as highly rated.')+'</p><h3>'+t('有来源的评分','Sourced ratings')+'</h3><p>'+t('演示模式展示已有核验快照，缺失分数不作填补。每项评分可打开来源，核验日期不代表源站当天更新。国家／地区按制作归属记录，不代表对白语言。','Demo mode shows sourced rating snapshots. Missing ratings remain empty. Each score links to its source; the checked date is not a promise of a current score. Production regions do not imply a film’s spoken language.')+'</p><h3>'+t('你的偏好，留在本机','Your preferences stay here')+'</h3><p>'+t('心情使用中英文关键词与标签匹配，复杂表达可能理解不完整。切换界面语言不会改变电影的语言，也不会清空当前问答。语言偏好、收藏、喜好及推荐过的电影编号保存在当前浏览器；心情原文不会保存。每轮挑选约 7 部，契合心境的作品可以再次推荐。在相近匹配度下优先选择豆瓣或 IMDb 有来源的 8 分及以上影片，评分分开展示，不生成综合分。候选不足时保留你的片长与地区限制。','Mood matching uses Chinese and English keywords and editorial tags; complex expressions may be missed. Switching the interface language does not change a film’s spoken language or clear your answers. Your language, watchlist, taste and previously recommended film IDs are saved in this browser; your mood text is not saved. Each round contains up to 7 films, and a fitting story can return. For similarly relevant films, sourced Douban or IMDb ratings of 8/10 or higher get priority. Scores stay separate, with no invented composite score. A small selection never overrides your time or region limits.')+'</p><h3>'+t('按你的节奏探索','Explore at your own pace')+'</h3><p>'+t('使用左右按钮、方向键或手机滑动切换主推荐。可暂停漂浮，也会遵循系统减少动态效果设置。','Use the arrows, keyboard arrow keys or a horizontal swipe to change the featured film. Motion can be paused and follows your system’s reduced-motion setting.')+'</p>';
   }
   function setLocale(locale) {
     if(!['zh','en'].includes(locale)||history.locale===locale||state.transitioning)return;
@@ -311,9 +353,9 @@
     const activeId=state.detailId,scroll=window.scrollY;
     history.locale=locale;persist();
     if(state.query){
-      const localized=engine.recommend({...state.query,locale},{...history,seenIds:[],dislikedIds:[]},{dateKey:dateKey()});
+      const localized=engine.rankBatchCandidates({...state.query,locale},{...history,seenIds:[],dislikedIds:[]},{dateKey:state.batchDate,seed:state.batchSeed,ratings:snapshots});
       const byId=new Map(localized.map(entry=>[entry.movie.id,entry]));
-      state.ranked=state.ranked.map(entry=>byId.has(entry.movie.id)?{...byId.get(entry.movie.id),score:entry.score}:entry);
+      state.ranked=state.ranked.map(entry=>byId.has(entry.movie.id)?{...entry,shortReason:byId.get(entry.movie.id).shortReason,rationale:byId.get(entry.movie.id).rationale,reasons:byId.get(entry.movie.id).reasons}:entry);
     }
     const pendingExclusions=state.dirtyResults;state.dirtyResults=false;
     ({home:renderHome,questions:renderQuestion,reveal:renderReveal,results:renderResults,chosen:renderChosen,saved:renderLibrary}[state.view]||renderHome)();
@@ -362,6 +404,8 @@
         if(nextIndex>=0&&nextIndex!==state.activeIndex)switchFeature(0,nextIndex);
         break;
       }
+      case 'refresh-batch':changeBatch();break;
+      case 'new-mood':transition(()=>{state.draft='';renderHome();});break;
       case 'edit-answers':transition(()=>{state.step=0;renderQuestion();});break;
       case 'back-question':transition(()=>{if(state.step){state.step--;renderQuestion();}else renderHome();});break;
       case 'next-question':if(state.transitioning||state.answers[questions()[state.step].key]===null)return;if(state.step===questions().length-1)finishQuestions();else transition(()=>{state.step++;renderQuestion();});break;

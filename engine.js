@@ -262,5 +262,136 @@
     });
   }
 
-  return { analyzeMood: analyzeMood, buildQuery: buildQuery, recommend: recommend, options: recommendEngine.options, countryLabel: countryLabel };
+  // English topic aliases connect the same editorial tags used by Chinese
+  // input. They are a bounded matching vocabulary, not generated film facts.
+  var batchTopics = [
+    { label: ['爵士', 'jazz'], aliases: ['jazz'], keywords: ['爵士'] },
+    { label: ['音乐', 'music'], aliases: ['music', 'musical', 'musicals', 'singing', 'dancing'], genres: ['music'] },
+    { label: ['乐队', 'bands'], aliases: ['band', 'bands', 'rock music'], keywords: ['乐队', '摇滚'] },
+    { label: ['太空', 'space'], aliases: ['space', 'cosmos', 'universe', 'astronaut', 'astronauts'], keywords: ['宇宙', '太空'] },
+    { label: ['外星生命', 'alien contact'], aliases: ['alien', 'aliens', 'alien contact'], keywords: ['外星'] },
+    { label: ['亲情', 'family'], aliases: ['family', 'parents', 'siblings'], keywords: ['家庭', '亲情', '兄妹'] },
+    { label: ['友情', 'friendship'], aliases: ['friendship', 'friendships'], keywords: ['友情', '友谊'] },
+    { label: ['旅行', 'travel'], aliases: ['travel', 'travelling', 'traveling', 'road trip', 'road trips'], keywords: ['旅行', '公路'] },
+    { label: ['爱情', 'romance'], aliases: ['romance', 'romantic', 'love story', 'love stories'], genres: ['romance'] },
+    { label: ['悬疑', 'mystery'], aliases: ['mystery', 'mysteries', 'detective', 'whodunit'], genres: ['mystery'] },
+    { label: ['科幻', 'science fiction'], aliases: ['science fiction', 'sci-fi', 'sci fi'], genres: ['scifi'] },
+    { label: ['动画', 'animation'], aliases: ['animation', 'animated', 'anime', 'cartoon', 'cartoons'], genres: ['animation'] },
+    { label: ['喜剧', 'comedy'], aliases: ['comedy', 'comedies', 'funny'], genres: ['comedy'] },
+    { label: ['冒险', 'adventure'], aliases: ['adventure', 'adventures'], genres: ['adventure'] },
+    { label: ['自然', 'nature'], aliases: ['nature', 'countryside', 'forest', 'forests'], keywords: ['自然', '乡村'] },
+    { label: ['童年', 'childhood'], aliases: ['childhood'], keywords: ['童年'] },
+    { label: ['回忆', 'memories'], aliases: ['memory', 'memories', 'nostalgia'], keywords: ['回忆', '记忆', '乡愁'] },
+    { label: ['社会', 'society'], aliases: ['society', 'social inequality', 'class inequality'], keywords: ['社会', '阶层'] },
+    { label: ['法庭', 'courtroom stories'], aliases: ['courtroom', 'jury', 'jurors'], keywords: ['法庭'] }
+  ];
+
+  function regexEscape(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function topicExpression(topic) { return new RegExp('\\b(?:' + topic.aliases.map(regexEscape).join('|') + ')\\b', 'i'); }
+  function batchTextTopics(text) {
+    var positive = text.toLowerCase().replace(/’/g, "'");
+    var avoided = [];
+    var aliases = [];
+    batchTopics.forEach(function (topic) { aliases = aliases.concat(topic.aliases); });
+    aliases.sort(function (a, b) { return b.length - a.length; });
+    var word = '(?:' + aliases.map(regexEscape).join('|') + ')\\b';
+    var term = word + '(?:\\s+(?:films?|movies?|stories))?';
+    var negative = new RegExp("\\b(?:no|avoid|without|skip|not|don't want|do not want|don't like|do not like|not in the mood for|don't feel like|do not feel like)(?:\\s+(?:any|a|an|watching|watch|to|see|seeing|more|really))*\\s+(" + term + '(?:\\s*(?:,|or|and)\\s*' + term + ')*)', 'gi');
+    positive = positive.replace(negative, function (match) {
+      batchTopics.forEach(function (topic) { if (topicExpression(topic).test(match) && avoided.indexOf(topic) === -1) avoided.push(topic); });
+      return ' ';
+    });
+    return {
+      positive: batchTopics.filter(function (topic) { return topicExpression(topic).test(positive); }),
+      avoided: avoided
+    };
+  }
+  function movieMatchesTopic(movie, topic) {
+    return (topic.genres || []).some(function (genre) { return movie.genres.indexOf(genre) !== -1; }) ||
+      (topic.keywords || []).some(function (keyword) { return movie.keywords.indexOf(keyword) !== -1; });
+  }
+
+  function ratingEvidence(movieId, ratings) {
+    if (!ratings || !Object.prototype.hasOwnProperty.call(ratings, movieId)) return null;
+    var record = ratings[movieId];
+    if (!record || !Array.isArray(record.scores)) return null;
+    var evidence = record.scores.map(function (rating) {
+      if (!rating || ['douban', 'imdb'].indexOf(rating.platform) === -1 || typeof rating.url !== 'string') return null;
+      var url;
+      try { url = new URL(rating.url); } catch (_) { return null; }
+      if (url.protocol !== 'https:' || url.username || url.password) return null;
+      var validSource = rating.platform === 'douban'
+        ? url.hostname === 'movie.douban.com' && /^\/subject\/\d+(?:\/|$)/.test(url.pathname)
+        : ['imdb.com', 'www.imdb.com'].indexOf(url.hostname) !== -1 && /^\/(?:[a-z]{2}\/)?title\/tt\d+(?:\/|$)/.test(url.pathname);
+      if (!validSource || (typeof rating.value !== 'number' && typeof rating.value !== 'string')) return null;
+      if (typeof rating.value === 'string' && !/^\s*\d+(?:\.\d+)?\s*(?:\/\s*10)?\s*$/.test(rating.value)) return null;
+      var score = typeof rating.value === 'number' ? rating.value : Number(rating.value.split('/')[0].trim());
+      if (!isFinite(score) || score < 0 || score > 10) return null;
+      return {
+        platform: rating.platform, label: rating.platform === 'douban' ? '豆瓣' : 'IMDb',
+        value: String(rating.value).split('/')[0].trim(), score: score, url: url.href,
+        checkedAt: rating.checkedAt || record.checkedAt || null, highRated: score >= 8
+      };
+    }).filter(Boolean).sort(function (a, b) { return b.score - a.score || (a.platform === 'douban' ? -1 : b.platform === 'douban' ? 1 : 0); });
+    return evidence[0] || null;
+  }
+
+  function rankBatchCandidates(input, history, settings) {
+    history = history || {};
+    settings = settings || {};
+    var query = buildQuery(input);
+    var topics = batchTextTopics(query.note);
+    var previous = ids(settings.previousIds);
+    var recommended = ids(history.recommendedIds).concat(previous);
+    var included = [];
+    var candidates = recommend(input, history, settings).filter(function (entry) {
+      if (included.indexOf(entry.movie.id) !== -1 || topics.avoided.some(function (topic) { return movieMatchesTopic(entry.movie, topic); })) return false;
+      included.push(entry.movie.id);
+      return true;
+    }).map(function (entry, index) {
+      var matchedTopics = topics.positive.filter(function (topic) { return movieMatchesTopic(entry.movie, topic); });
+      var relevanceScore = entry.score + Math.min(matchedTopics.length, 3) * 12;
+      var freshnessPenalty = (recommended.indexOf(entry.movie.id) !== -1 ? 6 : 0) + (previous.indexOf(entry.movie.id) !== -1 ? 6 : 0);
+      var quality = ratingEvidence(entry.movie.id, settings.ratings);
+      var copy = matchedTopics.length ? (query.locale === 'en'
+        ? 'It also matches your interest in ' + matchedTopics.slice(0, 2).map(function (topic) { return topic.label[1]; }).join(' and ') + '.'
+        : '也呼应了你提到的「' + matchedTopics.slice(0, 2).map(function (topic) { return topic.label[0]; }).join('、') + '」。') : '';
+      return {
+        movie: entry.movie, score: relevanceScore - freshnessPenalty, relevanceScore: relevanceScore,
+        freshnessPenalty: freshnessPenalty, quality: quality, highRated: Boolean(quality && quality.highRated),
+        reasons: copy ? [copy].concat(entry.reasons).slice(0, 3) : entry.reasons,
+        shortReason: entry.shortReason, rationale: entry.rationale + (copy ? (query.locale === 'en' ? ' ' : '') + copy : ''),
+        tieOrder: index
+      };
+    }).sort(function (a, b) {
+      // A weaker story cannot win just for being unseen or highly rated. Among
+      // nearby matches, sourced /10 high ratings take priority over freshness.
+      var relevanceBand = Math.floor(b.relevanceScore / 12) - Math.floor(a.relevanceScore / 12);
+      if (relevanceBand) return relevanceBand;
+      if (a.highRated !== b.highRated) return a.highRated ? -1 : 1;
+      return b.score - a.score || ((b.quality ? b.quality.score : -1) - (a.quality ? a.quality.score : -1)) || a.tieOrder - b.tieOrder;
+    });
+    return candidates.map(function (entry) {
+      delete entry.tieOrder;
+      return entry;
+    });
+  }
+
+  function recommendBatch(input, history, settings) {
+    history = history || {};
+    settings = settings || {};
+    var size = Number(settings.size);
+    size = isFinite(size) && size >= 1 ? Math.min(7, Math.floor(size)) : 7;
+    var recommended = ids(history.recommendedIds).concat(ids(settings.previousIds));
+    var candidates = rankBatchCandidates(input, history, settings);
+    var entries = candidates.slice(0, size);
+    var repeatedCount = entries.filter(function (entry) { return recommended.indexOf(entry.movie.id) !== -1; }).length;
+    return {
+      entries: entries, eligibleCount: candidates.length, requestedSize: size,
+      shortfall: Math.max(0, size - entries.length), repeatedCount: repeatedCount,
+      freshCount: entries.length - repeatedCount, remainingCount: candidates.length - entries.length
+    };
+  }
+
+  return { analyzeMood: analyzeMood, buildQuery: buildQuery, recommend: recommend, recommendBatch: recommendBatch, rankBatchCandidates: rankBatchCandidates, ratingEvidence: ratingEvidence, options: recommendEngine.options, countryLabel: countryLabel };
 }));

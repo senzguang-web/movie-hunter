@@ -13,14 +13,14 @@
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const palette = ['193,217,241', '181,218,224', '211,203,233', '235,241,250'];
-  const nebulaPalette = ['91,119,164', '87,135,145', '114,107,156'];
-  const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  const palette = ['184,216,231', '175,220,224', '212,220,238', '235,241,247'];
+  const fieldPalette = ['99,176,189', '110,191,201', '164,220,226'];
+  const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, screenX: -1000, screenY: -1000, active: false };
   let width = 0;
   let height = 0;
   let mobile = false;
   let stars = [];
-  let galaxy = null;
+  let atmosphere = [];
   let frame = 0;
   let resizeTimer = 0;
   let lastDraw = 0;
@@ -29,8 +29,6 @@
   let foregroundBusy = false;
   let destroyed = false;
   let resizePending = false;
-  let meteor = null;
-  let nextMeteor = 10.5;
   let pulseAmount = 0;
   let pulseTarget = 0;
   let pulseExpires = 0;
@@ -48,87 +46,81 @@
     return Math.sqrt(-2 * Math.log(Math.max(.00001, random()))) * Math.cos(twoPi * random());
   }
 
-  function makeSprite(color, nebula) {
+  function makeSprite(color) {
     const sprite = document.createElement('canvas');
-    sprite.width = sprite.height = 64;
+    sprite.width = sprite.height = 48;
     const brush = sprite.getContext('2d');
-    const light = brush.createRadialGradient(32, 32, 0, 32, 32, 32);
-    if (nebula) {
-      light.addColorStop(0, 'rgba(' + color + ',.27)');
-      light.addColorStop(.26, 'rgba(' + color + ',.14)');
-      light.addColorStop(.59, 'rgba(' + color + ',.032)');
-      light.addColorStop(1, 'rgba(' + color + ',0)');
-    } else {
-      light.addColorStop(0, 'rgba(244,248,255,.98)');
-      light.addColorStop(.075, 'rgba(' + color + ',.92)');
-      light.addColorStop(.17, 'rgba(' + color + ',.39)');
-      light.addColorStop(.35, 'rgba(' + color + ',.07)');
-      light.addColorStop(.66, 'rgba(' + color + ',.012)');
-      light.addColorStop(1, 'rgba(' + color + ',0)');
-    }
+    const light = brush.createRadialGradient(24, 24, 0, 24, 24, 24);
+    light.addColorStop(0, 'rgba(240,247,251,.92)');
+    light.addColorStop(.09, 'rgba(' + color + ',.7)');
+    light.addColorStop(.24, 'rgba(' + color + ',.18)');
+    light.addColorStop(.52, 'rgba(' + color + ',.015)');
+    light.addColorStop(1, 'rgba(' + color + ',0)');
     brush.fillStyle = light;
-    brush.fillRect(0, 0, 64, 64);
+    brush.fillRect(0, 0, 48, 48);
     return sprite;
   }
 
-  const starSprites = palette.map(color => makeSprite(color, false));
-  const cloudSprites = nebulaPalette.map(color => makeSprite(color, true));
+  const starSprites = palette.map(makeSprite);
 
-  function galaxyCenter(x) {
-    return .68 - x * .37 + Math.sin(x * 6.4 + .65) * .038;
+  function buildAtmosphere(random) {
+    // Fine points form a distant, uneven surface, echoing KIN's particle terrain.
+    // Cache three depth planes once; moving their narrow slices follows the same
+    // continuous current without repainting thousands of tiny points per frame.
+    const planes = [];
+    const bandHeight = height * .43;
+    const resolution = Math.min(1, 1400 / width, Math.sqrt(1100000 / (width * bandHeight * 3)));
+    const columns = mobile ? 8 : 12;
+    for (let plane = 0; plane < 3; plane += 1) {
+      const layer = document.createElement('canvas');
+      layer.width = Math.ceil(width * resolution);
+      layer.height = Math.ceil(bandHeight * resolution);
+      const brush = layer.getContext('2d');
+      brush.setTransform(resolution, 0, 0, resolution, 0, 0);
+      brush.fillStyle = 'rgb(' + fieldPalette[plane] + ')';
+      const count = mobile ? 1700 : 4000;
+      for (let index = 0; index < count; index += 1) {
+        const x = random();
+        const depth = random();
+        const phase = x * 9.4 + depth * 6.8 + plane * .48;
+        const ridge = Math.sin(phase) * .036 + Math.sin(x * 18.2 - depth * 4.1) * .014;
+        const y = .705 + depth * .16 + ridge + plane * .012 + gaussian(random) * .002;
+        const edgeFade = Math.pow(Math.sin(x * Math.PI), .65);
+        const crest = .4 + Math.pow(Math.cos(phase), 4) * .6;
+        const size = (mobile ? .55 : .6) + depth * .52;
+        brush.globalAlpha = (.22 + depth * .25) * crest * edgeFade;
+        brush.fillRect(x * width, (y - .62) * height, size, size);
+      }
+      planes.push({
+        image: layer,
+        depth: .35 + plane * .25,
+        phase: plane * .48,
+        columns,
+        sourceWidth: layer.width / columns,
+        columnWidth: width / columns,
+        height: bandHeight,
+        top: height * .62
+      });
+    }
+    return planes;
   }
 
-  function buildGalaxy(random) {
-    // This cache is painted only on resize. Small overlapping filaments form the
-    // cloud; there is no full-screen radial gradient or per-frame blur pass.
-    const layer = document.createElement('canvas');
-    const resolution = Math.min(1, 1400 / width, Math.sqrt(1100000 / (width * height)));
-    layer.width = Math.ceil(width * resolution);
-    layer.height = Math.ceil(height * resolution);
-    const brush = layer.getContext('2d');
-    brush.setTransform(resolution, 0, 0, resolution, 0, 0);
-    brush.globalCompositeOperation = 'screen';
-    const scale = mobile ? .74 : 1;
-    const cloudCount = mobile ? 1020 : 1920;
-
-    for (let index = 0; index < cloudCount; index += 1) {
-      const x = -.09 + random() * 1.18;
-      const strand = index % 3;
-      const clustered = .55 + Math.sin(x * 17.5 + strand * 1.7) * .22 + Math.sin(x * 38.4) * .1;
-      if (random() > clustered) continue;
-      const offset = (strand - 1) * .027;
-      const strandWidth = .009 + Math.sin(x * 8.3 + strand) ** 2 * .018;
-      const y = galaxyCenter(x) + offset + gaussian(random) * strandWidth;
-      const diameter = (8 + random() * 32) * scale;
-      const stretch = 1.25 + random() * 1.8;
-      const edgeFade = Math.max(0, Math.sin(Math.max(0, Math.min(1, x)) * Math.PI)) ** .45;
-      brush.globalAlpha = (.13 + random() * .35) * edgeFade;
-      brush.drawImage(cloudSprites[strand], x * width - diameter * stretch * .5, y * height - diameter * .5, diameter * stretch, diameter);
+  function drawAtmosphere() {
+    for (let index = 0; index < atmosphere.length; index += 1) {
+      const plane = atmosphere[index];
+      context.globalAlpha = .66 + plane.depth * .12;
+      for (let column = 0; column < plane.columns; column += 1) {
+        const along = (column + .5) / plane.columns;
+        // Neighbouring strips share long waves, so the surface breathes as a
+        // volume. Their incommensurate periods prevent a visible looping beat.
+        const current = Math.sin(along * 6.3 + elapsed * .095 + plane.phase) * 3.1
+          + Math.sin(along * 10.8 - elapsed * .061 + plane.phase) * 1.4;
+        const y = plane.top + current * plane.depth + pointer.y * plane.depth * .6;
+        const x = column * plane.columnWidth + pointer.x * plane.depth * .45;
+        context.drawImage(plane.image, column * plane.sourceWidth, 0, plane.sourceWidth, plane.image.height,
+          x, y, plane.columnWidth, plane.height);
+      }
     }
-
-    // Finer filament cores bring detail without turning the dust into noisy dots.
-    for (let index = 0; index < (mobile ? 430 : 720); index += 1) {
-      const x = random();
-      const strand = index % 2;
-      const branch = Math.sin(x * 21 + strand * 2.2) * .006;
-      const y = galaxyCenter(x) + (strand ? .013 : -.022) + branch + gaussian(random) * .004;
-      const size = (3 + random() * 7) * scale;
-      brush.globalAlpha = (.19 + random() * .29) * Math.sin(x * Math.PI);
-      brush.drawImage(cloudSprites[strand], x * width - size * 1.4, y * height - size * .5, size * 2.8, size);
-    }
-
-    // Soft, irregular dark lanes keep the band from becoming a luminous stripe.
-    brush.globalCompositeOperation = 'destination-out';
-    for (let index = 0; index < 160; index += 1) {
-      const x = index / 159;
-      const y = galaxyCenter(x) + Math.sin(x * 24) * .009 + .003;
-      const diameter = (16 + Math.sin(x * 19) ** 2 * 30) * scale;
-      brush.globalAlpha = .38;
-      brush.drawImage(cloudSprites[0], x * width - diameter, y * height - diameter * .5, diameter * 2, diameter);
-    }
-    brush.globalAlpha = 1;
-    brush.globalCompositeOperation = 'source-over';
-    return layer;
   }
 
   function rebuildSky() {
@@ -138,29 +130,38 @@
     stars = [];
 
     for (let index = 0; index < starCount; index += 1) {
-      const depth = .14 + Math.pow(random(), 2) * .86;
-      const bright = index % 39 === 0;
-      const x = random();
-      const inGalaxy = index % 4 === 0;
-      stars.push({
-        x,
-        y: inGalaxy ? galaxyCenter(x) + gaussian(random) * .047 : random(),
+      const depth = .12 + Math.pow(random(), 2) * .88;
+      const bright = index % 53 === 0;
+      const point = {
+        x: random() * width,
+        y: random() * height,
         depth,
-        size: bright ? 10 + random() * 5 : 3.1 + depth * 4.2,
-        alpha: bright ? .74 + random() * .14 : .26 + depth * .36,
+        size: bright ? 6.5 + random() * 2.5 : 2.2 + depth * 3.6,
+        alpha: bright ? .56 + random() * .12 : .2 + depth * .29,
         color: bright ? 3 : Math.floor(random() * palette.length),
         phase: random() * twoPi,
-        period: 31 + random() * 16,
-        bright
-      });
-    }
-    for (const point of stars) {
-      point.originX = point.x * width;
-      point.originY = point.y * height;
-      point.frequency = twoPi / point.period;
+        frequency: twoPi / (43 + random() * 29),
+        velocityX: 0,
+        velocityY: 0,
+        offsetX: 0,
+        offsetY: 0,
+        offsetVelocityX: 0,
+        offsetVelocityY: 0,
+        // Precomputed smooth-current knots avoid random calls and allocations
+        // while drawing. Slow, independent curves avoid a shared diagonal drift.
+        currentPhase: random() * 10,
+        currentSpeed: .035 + random() * .019,
+        currentX: new Float32Array(12),
+        currentY: new Float32Array(12)
+      };
+      for (let knot = 0; knot < 12; knot += 1) {
+        point.currentX[knot] = random() * 2 - 1;
+        point.currentY[knot] = random() * 2 - 1;
+      }
       point.sprite = starSprites[point.color];
+      stars.push(point);
     }
-    galaxy = buildGalaxy(random);
+    atmosphere = buildAtmosphere(random);
   }
 
   function resize() {
@@ -186,39 +187,56 @@
     draw();
   }
 
-  function drawStar(point) {
-    const phase = elapsed * point.frequency + point.phase;
-    const driftX = Math.sin(phase) * point.depth * 2.4;
-    const driftY = Math.cos(phase * .83) * point.depth * 1.9;
-    const outwardX = (point.x - .5) * pulseAmount * 10 * point.depth;
-    const outwardY = (point.y - .5) * pulseAmount * 8 * point.depth;
-    const x = point.originX + driftX + pointer.x * point.depth + outwardX;
-    const y = point.originY + driftY + pointer.y * point.depth + outwardY;
-    const breathe = .955 + Math.sin(phase * .73) * .045;
-    const size = point.size;
-    context.globalAlpha = Math.min(.93, point.alpha * breathe + pulseAmount * .012);
-    context.drawImage(point.sprite, x - size * .5, y - size * .5, size, size);
+  function advanceStar(point, delta) {
+    const current = elapsed * point.currentSpeed + point.currentPhase;
+    const cell = Math.floor(current);
+    const fraction = current - cell;
+    const blend = fraction * fraction * fraction * (fraction * (fraction * 6 - 15) + 10);
+    const a = cell % 12;
+    const b = (a + 1) % 12;
+    const speed = .16 + point.depth * 1.35;
+    const targetX = (point.currentX[a] + (point.currentX[b] - point.currentX[a]) * blend) * speed;
+    const targetY = (point.currentY[a] + (point.currentY[b] - point.currentY[a]) * blend) * speed * .72;
+    const ease = 1 - Math.exp(-delta * .7);
+    point.velocityX += (targetX - point.velocityX) * ease;
+    point.velocityY += (targetY - point.velocityY) * ease;
+    point.x += point.velocityX * delta;
+    point.y += point.velocityY * delta;
+    if (point.x < -12) point.x += width + 24;
+    if (point.x > width + 12) point.x -= width + 24;
+    if (point.y < -12) point.y += height + 24;
+    if (point.y > height + 12) point.y -= height + 24;
+
+    // A local, damped response gives nearby dust a little inertia. The effect is
+    // bounded to background pixels; controls and text never move with it.
+    let forceX = 0;
+    let forceY = 0;
+    if (pointer.active && point.depth > .4) {
+      const dx = point.x - pointer.screenX;
+      const dy = point.y - pointer.screenY;
+      const distanceSquared = dx * dx + dy * dy;
+      if (distanceSquared > 1 && distanceSquared < 19600) {
+        const distance = Math.sqrt(distanceSquared);
+        const influence = (1 - distance / 140) * point.depth * 5;
+        forceX = dx / distance * influence;
+        forceY = dy / distance * influence;
+      }
+    }
+    point.offsetVelocityX += (forceX - point.offsetX * 1.5 - point.offsetVelocityX * 2.8) * delta;
+    point.offsetVelocityY += (forceY - point.offsetY * 1.5 - point.offsetVelocityY * 2.8) * delta;
+    point.offsetX += point.offsetVelocityX * delta;
+    point.offsetY += point.offsetVelocityY * delta;
   }
 
-  function drawMeteor() {
-    if (!meteor) return;
-    const progress = (elapsed - meteor.start) / meteor.duration;
-    if (progress < 0 || progress > 1) return;
-    const visibility = Math.sin(progress * Math.PI) ** 1.3;
-    const travel = mobile ? 85 : 155;
-    const x = meteor.x * width + progress * travel;
-    const y = meteor.y * height + progress * travel * .29;
-    const tail = mobile ? 25 : 42;
-    const fade = context.createLinearGradient(x - tail, y - tail * .29, x, y);
-    fade.addColorStop(0, 'rgba(178,210,231,0)');
-    fade.addColorStop(.75, 'rgba(192,221,239,' + (.12 * visibility).toFixed(3) + ')');
-    fade.addColorStop(1, 'rgba(224,239,249,' + (.42 * visibility).toFixed(3) + ')');
-    context.strokeStyle = fade;
-    context.lineWidth = .75;
-    context.beginPath();
-    context.moveTo(x - tail, y - tail * .29);
-    context.lineTo(x, y);
-    context.stroke();
+  function drawStar(point) {
+    const x = point.x + pointer.x * point.depth + point.offsetX;
+    const y = point.y + pointer.y * point.depth + point.offsetY;
+    const edgeFade = Math.min(1, Math.max(0, x + 8) / 26, Math.max(0, width + 8 - x) / 26,
+      Math.max(0, y + 8) / 26, Math.max(0, height + 8 - y) / 26);
+    const breathe = .97 + Math.sin(elapsed * point.frequency + point.phase) * .03;
+    const size = point.size;
+    context.globalAlpha = point.alpha * breathe * edgeFade + pulseAmount * .006;
+    context.drawImage(point.sprite, x - size * .5, y - size * .5, size, size);
   }
 
   function draw() {
@@ -226,16 +244,9 @@
     context.globalAlpha = 1;
     context.fillStyle = '#000';
     context.fillRect(0, 0, width, height);
-    if (galaxy) {
-      const scale = 1.018 + pulseAmount * .006;
-      const x = (width - width * scale) * .5 + pointer.x * .22 + Math.sin(elapsed / 39) * 1.3;
-      const y = (height - height * scale) * .5 + pointer.y * .2 + Math.cos(elapsed / 43) * .8;
-      context.globalAlpha = .85 + Math.sin(elapsed / 31) * .055 + pulseAmount * .025;
-      context.drawImage(galaxy, x, y, width * scale, height * scale);
-    }
+    drawAtmosphere();
     for (let index = 0; index < stars.length; index += 1) drawStar(stars[index]);
     context.globalAlpha = 1;
-    if (!reducedMotion.matches) drawMeteor();
   }
 
   function tick(now) {
@@ -256,16 +267,7 @@
     pulseAmount += (pulseTarget - pulseAmount) * (1 - Math.exp(-delta * (pulseTarget ? 2.1 : 1.45)));
     if (Math.abs(pulseAmount) < .0005) pulseAmount = 0;
 
-    if (meteor && elapsed - meteor.start > meteor.duration) meteor = null;
-    if (!meteor && elapsed >= nextMeteor) {
-      meteor = {
-        x: .09 + Math.random() * .58,
-        y: .11 + Math.random() * .18,
-        start: elapsed,
-        duration: 3.1 + Math.random() * .7
-      };
-      nextMeteor = elapsed + 8 + Math.random() * 7;
-    }
+    for (let index = 0; index < stars.length; index += 1) advanceStar(stars[index], delta);
     draw();
     frame = window.requestAnimationFrame(tick);
   }
@@ -286,7 +288,6 @@
       frame = window.requestAnimationFrame(tick);
     } else if (!document.hidden && !foregroundBusy) {
       if (reducedMotion.matches) {
-        meteor = null;
         pulseAmount = 0;
         pulseTarget = 0;
       }
@@ -299,12 +300,16 @@
     // Normalized pointer movement never shifts the background more than 5px.
     pointer.targetX = Math.max(-5, Math.min(5, (event.clientX / width - .5) * 10));
     pointer.targetY = Math.max(-3, Math.min(3, (event.clientY / height - .5) * 6));
+    pointer.screenX = event.clientX;
+    pointer.screenY = event.clientY;
+    pointer.active = true;
   }
 
   function resetPointer(event) {
     if (event && event.relatedTarget !== null) return;
     pointer.targetX = 0;
     pointer.targetY = 0;
+    pointer.active = false;
   }
 
   function requestResize() {
@@ -360,7 +365,7 @@
       finePointer.removeEventListener('change', pointerChanged);
       canvas.remove();
       stars = [];
-      galaxy = null;
+      atmosphere = [];
       if (window.MovieHunterStarfield === api) delete window.MovieHunterStarfield;
     }
   };

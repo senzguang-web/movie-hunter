@@ -28,9 +28,9 @@
     const sprite = document.createElement('canvas'); sprite.width = sprite.height = 24;
     const c = sprite.getContext('2d'), glow = c.createRadialGradient(12, 12, 0, 12, 12, 12);
     glow.addColorStop(0, 'rgba(' + color + ',1)');
-    glow.addColorStop(.07, 'rgba(242,248,255,.98)');
-    glow.addColorStop(.18, 'rgba(' + color + ',.68)');
-    glow.addColorStop(.45, 'rgba(' + color + ',.12)');
+    glow.addColorStop(.045, 'rgba(239,248,252,.9)');
+    glow.addColorStop(.14, 'rgba(' + color + ',.52)');
+    glow.addColorStop(.38, 'rgba(' + color + ',.07)');
     glow.addColorStop(1, 'rgba(' + color + ',0)');
     c.fillStyle = glow; c.fillRect(0, 0, 24, 24);
     sprites.set(color, sprite); return sprite;
@@ -61,20 +61,28 @@
   }
 
   function addPoint(x, y, color, seed, kind, delay) {
-    const depth = .25 + random(seed * 431) * .75;
-    const near = seed > .94;
-    const travel = Math.min(width * .48, 330) * (.45 + depth * .7);
-    // A shared diagonal current gives the dust a direction, while independent
-    // depth and arrival times prevent the page from looking like one moved bitmap.
-    const tint = kind === 'poster' ? color : seed < .3 ? [177,208,252] : seed > .78 ? [219,210,251] : [204,231,249];
-    points.push({ x, y, sprite: spriteFor(...tint), depth, near,
-      dx: travel * (.6 + seed * .6),
-      dy: -travel * .37 + (random(seed * 67) - .5) * 88 * depth,
-      bend: (28 + depth * 72) * (seed > .5 ? 1 : -.35),
-      size: near ? 10 + depth * 9 : kind === 'poster' ? 5 + depth * 5 : 3 + depth * 3.2,
-      alpha: near ? .3 : .62 + seed * .32,
-      delay: delay + random(seed * 109) * .09,
-      trail: seed > .86 && !near });
+    const depth = .18 + random(seed * 431) ** 1.4 * .82;
+    const near = seed > .975;
+    const nx = x / width, ny = y / height;
+    // Neighboring points belong to the same curved current. A little independent
+    // depth breaks up the surface without turning it into unrelated random noise.
+    const field = Math.sin(nx * 5.2 + ny * 2.1) + Math.cos(ny * 4.3 - nx * 1.6) * .65;
+    const angle = field * 1.8 + (random(seed * 67) - .5) * .65;
+    const travel = Math.min(width * .29, 210) * (.32 + depth * .76);
+    const curl = Math.sin(nx * 4.1 - ny * 3.8) * (22 + depth * 46);
+    const dx = Math.cos(angle) * travel, dy = Math.sin(angle) * travel * .66;
+    const tint = kind === 'poster' ? color : seed < .28 ? [160,218,226] : [209,229,241];
+    points.push({ x, y, sprite: spriteFor(...tint), depth, near, dx, dy,
+      // Cubic paths meet the original glyph/image exactly at their end. Control
+      // points carry the point cloud around gentle eddies, with no global sweep.
+      c1x: dx * .2 - Math.sin(angle) * curl,
+      c1y: dy * .2 + Math.cos(angle) * curl,
+      c2x: dx * .72 - Math.sin(angle) * curl * .55,
+      c2y: dy * .72 + Math.cos(angle) * curl * .55,
+      size: near ? 9 + depth * 4 : kind === 'poster' ? 4.2 + depth * 3.8 : 2.8 + depth * 2.4,
+      alpha: near ? .16 : .46 + seed * .37,
+      phase: random(seed * 73) * Math.PI * 2,
+      delay: delay + (.5 + .5 * Math.sin(nx * 3.4 + ny * 2.7)) * .04 + random(seed * 109) * .075 });
   }
 
   function sampleText(element, budget, order) {
@@ -117,7 +125,11 @@
     const count = Math.min(candidates.length, budget), stride = candidates.length / Math.max(1, count);
     for (let i = 0; i < count; i++) {
       const p = candidates[Math.floor(i * stride)], seed = random(i + order * 179);
-      addPoint(rect.left + p[0] / resolution, rect.top + p[1] / resolution, p.slice(2), seed, 'text', Math.min(order * .014, .1));
+      // Subpixel jitter removes the sampling lattice, while staying inside the
+      // letter stroke at the final handoff to native text.
+      addPoint(rect.left + (p[0] + (random(i + 791) - .5) * .65) / resolution,
+        rect.top + (p[1] + (random(i + 449) - .5) * .65) / resolution,
+        p.slice(2), seed, 'text', Math.min(order * .012, .085));
     }
   }
 
@@ -200,22 +212,18 @@
     const visibility = leaving ? smooth(progress / .2) * (1 - smooth((progress - .45) / .55)) : smooth(progress / .15) * (1 - smooth((progress - .67) / .33));
     ctx.globalCompositeOperation = 'lighter';
     for (const p of points) {
-      const local = clamp((progress - p.delay) / (leaving ? .8 : .64));
+      const local = clamp((progress - p.delay) / (leaving ? .83 : .68));
       const scatter = leaving ? smooth(local) : 1 - smooth(local);
-      const arc = scatter * (1 - scatter) * 4;
+      const rest = 1 - scatter;
+      const b1 = 3 * rest * rest * scatter, b2 = 3 * rest * scatter * scatter, b3 = scatter ** 3;
       const direction = leaving ? 1 : -1;
-      const x = p.x + direction * p.dx * scatter + p.bend * arc * .3;
-      const y = p.y + direction * p.dy * scatter + p.bend * arc;
-      const size = p.size * (1 + scatter * (p.near ? 1.1 : .25));
-      const alpha = p.alpha * visibility;
-      // Sparse, softly tapered echoes read as starlight in motion rather than
-      // uniformly sized grains. Cached sprites avoid per-frame blur or gradients.
-      if (p.trail && scatter > .04 && scatter < .95) {
-        const tail = Math.min(12, p.dx * .045) * arc;
-        ctx.globalAlpha = alpha * .18;
-        ctx.drawImage(p.sprite, x - direction * tail - size, y + direction * tail * .37 - size / 2, size * 2, size);
-      }
-      ctx.globalAlpha = alpha;
+      const tide = Math.sin(progress * Math.PI) * scatter * (2 + p.depth * 5);
+      const x = p.x + direction * (b1 * p.c1x + b2 * p.c2x + b3 * p.dx) + Math.sin(progress * 2.2 + p.phase) * tide;
+      const y = p.y + direction * (b1 * p.c1y + b2 * p.c2y + b3 * p.dy) + Math.cos(progress * 1.8 + p.phase) * tide * .65;
+      const size = p.size * (1 + scatter * (p.near ? .65 : .2));
+      // A few defocused foreground specks dissolve before the content resolves.
+      // No streaks or frame-to-frame random jitter: light drifts with the volume.
+      ctx.globalAlpha = p.alpha * visibility * (p.near ? .3 + scatter * .7 : 1);
       ctx.drawImage(p.sprite, x - size / 2, y - size / 2, size, size);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -249,7 +257,7 @@
     // Keep the cached sky gently breathing on the compositor while its expensive
     // Canvas loop is paused. This changes neither geometry nor input coordinates.
     const sky = document.getElementById('starfield');
-    if (sky?.animate) skyAnimation = sky.animate([{opacity:1},{opacity:.8,offset:.38},{opacity:1}], {duration,easing:'ease-in-out'});
+    if (sky?.animate) skyAnimation = sky.animate([{opacity:1},{opacity:.94,offset:.38},{opacity:1}], {duration,easing:'ease-in-out'});
     return new Promise(resolve => {
       active = {type,duration,resolve,start:performance.now(),slowFrames:0};
       canvas.dataset.running = 'true'; raf = requestAnimationFrame(tick);
@@ -276,7 +284,7 @@
         if (token !== generation || failed) return;
       }
       window.MovieHunterStarfield?.pulse('enter');
-      await animate('enter', options.keepPosition ? 1060 : 1260, options.motionOff);
+      await animate('enter', options.keepPosition ? 1240 : 1440, options.motionOff);
     } catch (_) { failSafe(); }
     finally { if (token === generation) { clearScene(); skyBusy(false); } }
   }
@@ -287,7 +295,7 @@
     const token = ++generation;
     try {
       window.MovieHunterStarfield?.pulse('leave');
-      await animate('leave', options.keepPosition ? 360 : 480, options.motionOff);
+      await animate('leave', options.keepPosition ? 460 : 580, options.motionOff);
       if (token === generation && !failed) stage.style.opacity = '0';
     } catch (_) { failSafe(); }
   }

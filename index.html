@@ -1,36 +1,27 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="description" content="电影猎手：说出心情，回答四个小问题，在世界电影中找到今晚的故事。支持中文、英文与国家多选。" />
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark"><meta name="theme-color" content="#000000">
   <title>电影猎手 · 让故事遇见此刻</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
-  <link rel="stylesheet" href="./style.css?v=rounds-1" />
-  <link rel="stylesheet" href="./atmosphere.css?v=immersive-1" />
-  <script src="./miniprogram/lib/catalog.js?v=world-3" defer></script>
-  <script src="./miniprogram/lib/recommend.js?v=world-3" defer></script>
-  <script src="./data/catalog.js?v=immersive-1" defer></script>
-  <script src="./data/ratings.js" defer></script>
-  <script src="./engine.js?v=rounds-1" defer></script>
-  <script src="./interview.js?v=adaptive-1" defer></script>
-  <script src="./country-order.js?v=adaptive-1" defer></script>
-  <script src="./deployment.js" defer></script>
-  <script src="./app.js?v=rounds-1" defer></script>
-  <script src="./atmosphere.js?v=immersive-1" defer></script>
+  <link rel="stylesheet" href="./motion-lab/base.css?v=f1e8172f22b7"><link rel="stylesheet" href="./motion-lab/stardust.css?v=f1e8172f22b7">
+<meta name="movie-hunter-release" content="f1e8172f22b7">
 </head>
-<body>
-  <a class="skip-link" href="#main">跳转到主要内容</a>
-  <header class="header">
-    <a class="brand" href="#home" aria-label="电影猎手首页"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="brand-orbit" cx="20" cy="20" r="17"/><ellipse cx="20" cy="20" rx="11" ry="17" transform="rotate(42 20 20)"/><path class="brand-play" d="m17 14 9 6-9 6z"/><circle class="brand-spark" cx="31" cy="7" r="2"/></svg><span>电影猎手</span></a>
-    <div class="header-actions"><nav aria-label="主导航"><button class="nav-link" data-nav="results" hidden><span class="nav-label">电影空间</span></button><button class="nav-link" data-nav="saved" hidden><span class="nav-label">想看片单</span> <span class="saved-count" hidden>0</span></button></nav><button class="motion-toggle" data-action="toggle-motion" aria-pressed="false">暂停漂浮</button><div class="language-switch" role="group" aria-label="语言 / Language"><button class="lang-button" data-locale="zh" lang="zh-CN" aria-label="切换为中文" aria-pressed="true">中文</button><button class="lang-button" data-locale="en" lang="en" aria-label="Switch to English" aria-pressed="false">EN</button></div></div>
+<body data-public="true" data-theme="stardust" data-phase="mood">
+  <header class="lab-header">
+    <a href="./"><i class="brand-mark" aria-hidden="true"></i><span>电影猎手</span></a>
+    <div class="lab-controls"><button id="locale-toggle" type="button">EN</button><button id="motion-toggle" type="button" aria-pressed="false">暂停动态</button><button id="particle-replay" hidden type="button" aria-label="重播粒子聚合">重播聚合</button><button id="prompt-open" hidden type="button">动效提示词</button></div>
   </header>
-  <main id="main" class="scene-layer" tabindex="-1"></main>
-  <footer class="footer"><span>让故事，遇见此刻。</span><button data-action="about">关于推荐与评分</button></footer>
-  <dialog id="detail-dialog" class="dialog detail-dialog" aria-labelledby="detail-title"></dialog>
-  <dialog id="about-dialog" class="dialog about-dialog" aria-labelledby="about-title"></dialog>
-  <div class="toast" role="status" aria-live="polite" hidden></div>
-  <noscript><p>请开启 JavaScript，体验心情选片。</p></noscript>
+  <nav hidden class="phase-nav" aria-label="预览阶段"><button type="button" data-phase="mood">01 心情</button><button type="button" data-phase="questions">02 问答</button><button type="button" data-phase="results">03 电影</button></nav>
+  <main id="stage" class="stage stage-mood"></main>
+  <footer class="lab-footer"><a hidden href="index.html">← 全部方案</a><span id="variant-label">01 / 星尘影院</span><button id="restart" type="button">重新体验</button></footer>
+  <dialog id="prompt-dialog" hidden aria-labelledby="prompt-title"><button id="prompt-close" type="button">关闭</button><h2 id="prompt-title"></h2><p id="prompt-source"></p><pre id="prompt-text"></pre><button id="prompt-copy" type="button">复制提示词</button><p id="copy-status" role="status"></p></dialog>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+  <noscript><p style="text-align:center">请启用 JavaScript 体验动态选片流程。</p></noscript>
+  <script src="./miniprogram/lib/catalog.js?v=f1e8172f22b7"></script>
+  <script src="./miniprogram/lib/recommend.js?v=f1e8172f22b7"></script>
+  <script src="./data/catalog.js?v=f1e8172f22b7"></script><script src="./data/ratings.js?v=f1e8172f22b7"></script>
+  <script src="./engine.js?v=f1e8172f22b7"></script><script src="./interview.js?v=f1e8172f22b7"></script><script src="./country-order.js?v=f1e8172f22b7"></script>
+  <script src="./deployment.js?v=f1e8172f22b7"></script><script src="./motion-lab/starfield.js?v=f1e8172f22b7"></script><script src="./motion-lab/particles.js?v=f1e8172f22b7"></script><script src="./motion-lab/experience.js?v=f1e8172f22b7"></script>
 </body>
 </html>

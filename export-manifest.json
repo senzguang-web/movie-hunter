@@ -18,6 +18,7 @@
     "assets/world/yi-yi.jpg",
     "atmosphere.css",
     "atmosphere.js",
+    "classic.html",
     "country-order.js",
     "data/catalog.js",
     "data/original-poster-sources.json",
@@ -54,6 +55,11 @@
     "miniprogram/assets/posters/walter-mitty.jpg",
     "miniprogram/lib/catalog.js",
     "miniprogram/lib/recommend.js",
+    "motion-lab/base.css",
+    "motion-lab/experience.js",
+    "motion-lab/particles.js",
+    "motion-lab/stardust.css",
+    "motion-lab/starfield.js",
     "style.css"
   ]
 }

@@ -1,0 +1,42 @@
+:root{--accent:#bfdef5;--accent-rgb:191,222,245}
+body[data-theme=stardust]{background:#000}
+body[data-public=true] .stage{min-height:calc(100svh - 170px)}
+body[data-public=true] .lab-footer{justify-content:space-between}
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+.particle-canvas{position:fixed;inset:0;z-index:4;pointer-events:none}
+body[data-theme=stardust] .stage{transition:none!important;opacity:1;transform:none!important;animation:none!important}
+body[data-theme=stardust] .stage.is-leaving{opacity:1;transform:none!important}
+.lab-header,.lab-footer{z-index:3}.lab-controls{gap:20px}.lab-controls button{font-size:10px}
+.brand-mark{border-color:#bddef0a6;box-shadow:0 0 16px #97ceff16}.brand-mark:after{border-color:#bddef06b}
+.primary-button{background:linear-gradient(120deg,#9acdfa14,#abc4f505);border:1px solid #b3daff40;color:#e0effa;border-radius:30px;box-shadow:inset 0 0 17px #a5d9ff06,0 0 25px #86bfff08}
+.primary-button:hover:not(:disabled){background:#c4e5ff12;border-color:#bfdfff94;box-shadow:0 0 28px #96c9ff1c;color:#fff}
+.input-row .primary-button{background:#9fcfff05;border-color:#b3daff40}.input-row .primary-button:after{color:#cfebfc}
+.input-row{border-bottom:1px solid #adcde62c;box-shadow:none;position:relative}
+.input-row:focus-within{border-color:#c3e5ff99;box-shadow:0 14px 24px -21px #a0d4ff}
+.mood-input{mask-image:none;-webkit-mask-image:none;text-shadow:0 0 15px #c2e3ff26}
+.option-row{border-bottom:1px solid #b4d9f212}
+.option-row input:checked+.option-content{background:linear-gradient(90deg,#96c7e00b,transparent);box-shadow:none}
+.option-row input:checked+.option-content:before{content:'';position:absolute;left:0;width:3px;height:3px;border-radius:50%;background:#e5f7ff;box-shadow:0 0 5px #fff,0 0 13px 3px #aadaff88}
+.option-row input:checked+.option-content .option-check{color:#d8f1ff}
+.option-content{padding-left:18px}.option-row:hover .option-content{background:#9fcbe207}
+.phase-nav button[aria-current]:after{height:1px;background:linear-gradient(90deg,transparent,#cae9ff,transparent);box-shadow:0 0 9px #98cfff66}
+.hero-poster{box-shadow:none}.hero-poster-wrap:before{content:'';position:absolute;inset:-1px;pointer-events:none;border:1px solid #bbdeff22;box-shadow:0 0 36px #99c9ff10,inset 0 0 25px #bbdeff0b}
+.hero-poster-wrap:after{display:block;inset:15% -20% -12%;height:auto;z-index:-1;background:radial-gradient(ellipse at 60% 60%,#8facda13,transparent 69%);filter:blur(22px)}
+.poster-tag{background:none;bottom:-24px;padding:0;text-align:center;color:#b6cce0}
+.film-thumbnails .thumb.active img,.thumb[aria-pressed=true] img{outline:none}
+.thumb.active:after{content:'';height:1px;width:65%;background:linear-gradient(90deg,transparent,#c5e8ff,transparent);box-shadow:0 0 9px #9bdaff44;margin:0 auto}
+.film-thumbnails{padding-top:10px}.film-nav button{border-color:#c1deef26;background:#b6dfff03}.film-nav button:hover{border-color:#cee7ff88;box-shadow:0 0 20px #b8dfff14}
+.film-stage{gap:65px}.film-reason{color:#c8d5e2}.rating-evidence a{border-bottom-color:#94b4d43d}
+.results-header{margin-bottom:36px}.stage-mood h1{font-size:clamp(36px,4.7vw,65px);letter-spacing:.015em}
+.mood-panel .eyebrow{letter-spacing:.28em}.selected-poster{box-shadow:0 0 48px #9bc7ff16}
+#prompt-dialog{z-index:10;background:#05090ef5;border:1px solid #adc9e332;border-radius:10px}
+#particle-replay{color:#bad8e7}.lab-footer #variant-label{letter-spacing:.12em}
+@media(max-width:650px){.lab-header{padding:20px}.lab-controls{gap:12px}.lab-controls button{font-size:9px}.lab-header>a{font-size:12px;gap:8px}.brand-sub{display:none}.lab-header .brand-mark{width:15px;height:15px}.stage-mood h1{font-size:36px}.film-stage{gap:21px}.poster-tag{font-size:8px;bottom:-22px}.stage-mood .mood-panel{padding-bottom:25px}.lab-header #particle-replay{font-size:0}.lab-header #particle-replay:after{content:'↻';font-size:17px;color:#bcd6e7}}
+@media(max-width:360px){.lab-controls{gap:11px}.lab-header{padding-inline:16px}.lab-header>a{font-size:10px;letter-spacing:.08em}.stage-mood h1{font-size:31px}.film-stage{gap:17px}}
+/* Quiet interaction feedback without shifting the click target. */
+body[data-theme=stardust] button,body[data-theme=stardust] a,body[data-theme=stardust] .option-content{transition:color .22s ease,background-color .22s ease,border-color .22s ease,opacity .22s ease}
+
+/* Sharp native content at rest; starlight resolves into it at the end of entry. */
+body[data-theme=stardust] h1,body[data-theme=stardust] .film-title{text-shadow:0 0 24px #b8dfff32}
+@media(prefers-reduced-motion:reduce){body[data-theme=stardust] button,body[data-theme=stardust] a,body[data-theme=stardust] .option-content{transition:none}}
+.motion-paused body[data-theme=stardust] button,.motion-paused body[data-theme=stardust] a,.motion-paused body[data-theme=stardust] .option-content{transition:none}

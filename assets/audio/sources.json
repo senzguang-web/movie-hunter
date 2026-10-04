@@ -1,0 +1,39 @@
+{
+  "seaside.mp3": {
+    "title": "Gentle ocean waves birdsong and gull.WAV",
+    "creator": "jackmichaelking",
+    "sourcePage": "https://freesound.org/people/jackmichaelking/sounds/518637/",
+    "downloadUrl": "https://cdn.freesound.org/previews/518/518637_6089496-hq.mp3",
+    "license": "CC0 1.0 Universal",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseVerifiedOn": "2026-10-04",
+    "attribution": "Gentle ocean waves birdsong and gull.WAV by jackmichaelking, via Freesound, CC0 1.0. Edited for Movie Hunter.",
+    "sourceDescription": "Field recording of calm beach waves with birdsong and distant gulls, made on a spring morning in Walton-on-the-Naze, Essex, UK, using a Zoom H6 MSH-6 stereo microphone.",
+    "sourceOriginal": {
+      "format": "WAV",
+      "durationSeconds": 115.093,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitDepth": 24
+    },
+    "edits": [
+      "Prepared from the openly available HQ MP3 preview; no login or full-quality original download was used.",
+      "Selected 12–96 seconds of the recording (84 seconds).",
+      "Applied a gentle 55 Hz high-pass and 7500 Hz low-pass to soften rumble and bright hiss.",
+      "Applied constant-gain loudness normalization near -24 LUFS, preserving natural wave dynamics; no synthesized waves or bird calls were added.",
+      "Encoded as 128 kbps stereo MP3 at 44100 Hz. Playback fade-in, fade-out and loop blending are handled by the website."
+    ],
+    "output": {
+      "durationSeconds": 84,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateKbps": 128,
+      "sizeBytes": 1345035,
+      "sha256": "d5433bc8659146d87e59ff6662d007a7f42feddc7773ff7ebf5cfef12d008b36",
+      "decodedMeasuredLoudnessLUFS": -24.42,
+      "decodedMeasuredTruePeakDBTP": -8.14,
+      "decodedLoudnessRangeLU": 4.1,
+      "inheritedReplayGain": false
+    }
+  }
+}

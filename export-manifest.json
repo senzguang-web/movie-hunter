@@ -4,6 +4,8 @@
     ".nojekyll",
     "README.md",
     "app.js",
+    "assets/audio/seaside.mp3",
+    "assets/audio/sources.json",
     "assets/favicon.svg",
     "assets/posters/paddington-2.jpg",
     "assets/posters/sources.json",
@@ -57,7 +59,9 @@
     "miniprogram/lib/recommend.js",
     "motion-lab/base.css",
     "motion-lab/experience.js",
+    "motion-lab/input-stardust.js",
     "motion-lab/particles.js",
+    "motion-lab/seaside-audio.js",
     "motion-lab/stardust.css",
     "motion-lab/starfield.js",
     "style.css"

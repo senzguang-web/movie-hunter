@@ -161,19 +161,23 @@
   function prepare() {
     sizeCanvas();
     const hero = stage.querySelector('.hero-poster,.selected-poster');
-    const key = [stage.firstElementChild, width, height, scrollY, hero?.currentSrc || hero?.src, hero?.complete, hero?.naturalWidth];
+    const moodInput = stage.querySelector('#lab-mood-input');
+    const key = [stage.firstElementChild, width, height, scrollY, hero?.currentSrc || hero?.src, hero?.complete, hero?.naturalWidth,
+      moodInput?.value, moodInput?.scrollTop, moodInput?.scrollLeft];
     if (prepared && key.every((value, i) => value === prepared[i])) return;
     const start = performance.now(); points = [];
     const budget = Math.round((width < 650 ? 1100 : 1800) * quality);
     const hasHero = hero && visible(hero);
+    const inputPoints = moodInput?.value ? (window.MovieHunterInputStardust?.snapshot?.() || []).slice(0, Math.floor(budget * .24)) : [];
     const selectors = stage.querySelector('.mood-panel') ? '.mood-panel h1 span' : 'h1,.film-title,.option-label';
     const labels = [...stage.querySelectorAll(selectors)].filter(visible).slice(0, 12);
-    const textBudget = Math.floor(hasHero ? budget * .35 : budget);
+    const textBudget = Math.floor(hasHero ? budget * .35 : budget) - inputPoints.length;
     // Give the headline enough stars to become legible before the native text
     // appears, even when a question has eight smaller options below it.
     const weights = labels.map(el => parseFloat(getComputedStyle(el).fontSize) > 26 ? 4 : 1);
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) || 1;
     labels.forEach((el, index) => sampleText(el, Math.floor(textBudget * weights[index] / totalWeight), index));
+    inputPoints.forEach((point, index) => addPoint(point.x, point.y, [209,229,241], random(index + 8827), 'text', .07));
     if (hasHero) samplePoster(hero, Math.floor(budget * .65));
     prepared = key;
     const ms = +(performance.now() - start).toFixed(1);

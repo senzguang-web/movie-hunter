@@ -70,6 +70,7 @@
     document.documentElement.classList.toggle('motion-paused', motionOff());
     document.body.dataset.phase = state.phase;
     document.body.dataset.locale = state.locale;
+    window.MovieHunterSeaside?.setLocale(state.locale);
     document.getElementById('locale-toggle').textContent = t('EN', '中文');
     document.getElementById('locale-toggle').setAttribute('aria-label', t('Switch to English', '切换为中文'));
     const pause = document.getElementById('motion-toggle');
@@ -132,6 +133,7 @@
   async function transition(render, keepPosition = false) {
     if (state.busy) return;
     state.busy = true;
+    window.MovieHunterInputStardust?.clear();
     const focused = document.activeElement;
     const action = focused?.dataset.action;
     const index = focused?.dataset.film;

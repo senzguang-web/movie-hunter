@@ -382,14 +382,51 @@
     settings = settings || {};
     var size = Number(settings.size);
     size = isFinite(size) && size >= 1 ? Math.min(7, Math.floor(size)) : 7;
-    var recommended = ids(history.recommendedIds).concat(ids(settings.previousIds));
+    var previous = ids(settings.previousIds);
+    var exposureLog = ids(history.recommendationLog);
+    var recommended = ids(history.recommendedIds).concat(exposureLog, previous);
     var candidates = rankBatchCandidates(input, history, settings);
-    var entries = candidates.slice(0, size);
+    var query = buildQuery(input);
+    var topics = batchTextTopics(query.note).positive;
+    var strongest = candidates.reduce(function (best, entry) { return Math.max(best, entry.relevanceScore); }, 0);
+    // Refresh explores genuinely fitting alternatives, not every film that merely
+    // passes duration/region filters. An explicit viewing goal is a meaningful fit;
+    // close-scoring stories can also qualify. Topic requests still need a topic match.
+    var relevant = candidates.filter(function (entry) {
+      if (topics.length && !topics.some(function (topic) { return movieMatchesTopic(entry.movie, topic); })) return false;
+      return (query.desired && entry.movie.desired.indexOf(query.desired) !== -1) || entry.relevanceScore >= Math.max(0, strongest - 24);
+    });
+    var selection = candidates;
+    if (settings.refresh) {
+      selection = relevant.slice();
+      var chronological = exposureLog.length ? exposureLog : ids(history.recommendedIds);
+      function freshness(entry) { return previous.indexOf(entry.movie.id) !== -1 ? 2 : recommended.indexOf(entry.movie.id) !== -1 ? 1 : 0; }
+      selection.sort(function (a, b) {
+        var aGroup = freshness(a), bGroup = freshness(b);
+        if (aGroup !== bGroup) return aGroup - bGroup;
+        // After the pool has been explored, rotate the least recently shown films
+        // before returning to familiar favorites. First-time choices still retain
+        // the normal mood and sourced-rating ordering within their novelty tier.
+        if (aGroup) {
+          var age = chronological.lastIndexOf(a.movie.id) - chronological.lastIndexOf(b.movie.id);
+          if (age) return age;
+        }
+        return candidates.indexOf(a) - candidates.indexOf(b);
+      });
+    }
+    var entries = selection.slice(0, size);
+    var selectedIds = entries.map(function (entry) { return entry.movie.id; });
     var repeatedCount = entries.filter(function (entry) { return recommended.indexOf(entry.movie.id) !== -1; }).length;
+    var changedCount = entries.filter(function (entry) { return previous.indexOf(entry.movie.id) === -1; }).length;
     return {
       entries: entries, eligibleCount: candidates.length, requestedSize: size,
       shortfall: Math.max(0, size - entries.length), repeatedCount: repeatedCount,
-      freshCount: entries.length - repeatedCount, remainingCount: candidates.length - entries.length
+      freshCount: entries.length - repeatedCount, remainingCount: candidates.length - entries.length,
+      relevantCount: relevant.length,
+      alternativeCount: relevant.filter(function (entry) { return selectedIds.indexOf(entry.movie.id) === -1; }).length,
+      unseenCount: relevant.filter(function (entry) { return recommended.indexOf(entry.movie.id) === -1 && selectedIds.indexOf(entry.movie.id) === -1; }).length,
+      changedCount: changedCount,
+      unchanged: Boolean(settings.refresh && entries.length === new Set(previous).size && !changedCount)
     };
   }
 

@@ -16,7 +16,8 @@
   const state = {
     phase: 'mood', locale: 'zh', mood: '', desired: null, genres: [], maxMinutes: null, countries: [], countriesExpanded: false,
     question: 0, preview: false, submitted: false, busy: false, paused: false,
-    batch: [], batchKey: '', metadata: null, active: 0, chosenId: null, round: 0, recommendedIds: []
+    batch: [], batchKey: '', metadata: null, active: 0, chosenId: null, round: 0, recordedRound: 0,
+    recommendedIds: [], recommendationLog: [], lastRefresh: false
   };
   const genreNames = { drama: ['剧情', 'Drama'], comedy: ['喜剧', 'Comedy'], romance: ['爱情', 'Romance'], animation: ['动画', 'Animation'], scifi: ['科幻', 'Sci-fi'], mystery: ['悬疑', 'Mystery'], adventure: ['冒险', 'Adventure'], music: ['音乐', 'Music'] };
   const t = (zh, en) => state.locale === 'en' ? en : zh;
@@ -273,16 +274,40 @@
     updateChrome();
   }
 
-  function generateBatch() {
+  function generateBatch(refresh = false) {
     if (!engine?.recommendBatch) { announcement(t('推荐功能尚未加载，请刷新重试。', 'The recommendation engine has not loaded. Please refresh.')); return false; }
-    state.round += 1;
-    const result = engine.recommendBatch(query(), { recommendedIds: state.recommendedIds }, { size: 7, seed: state.round, previousIds: state.batch.map(entry => entry.movie.id), dateKey: day(), ratings });
+    if (refresh && state.metadata?.alternativeCount === 0) {
+      announcement(t('当前片库中更契合的影片已全部展示，可以调整选择。', 'All fitting films in this collection are already shown. You can edit your choices.'));
+      return false;
+    }
+    const nextRound = state.round + 1;
+    const result = engine.recommendBatch(query(), { recommendedIds: state.recommendedIds, recommendationLog: state.recommendationLog }, { size: 7, seed: nextRound, previousIds: state.batch.map(entry => entry.movie.id), dateKey: day(), ratings, refresh });
+    if (refresh && !result.changedCount) {
+      state.metadata = { ...state.metadata, alternativeCount: 0 };
+      renderResults();
+      announcement(t('没有找到更多契合的影片，已保留当前推荐。', 'No additional fitting films were found. Your current selection is preserved.'));
+      return false;
+    }
+    state.round = nextRound;
+    state.lastRefresh = refresh;
     state.batch = result.entries;
     state.batchKey = queryKey();
     state.metadata = result;
     state.active = 0;
     state.chosenId = null;
     return true;
+  }
+
+  function batchNotice() {
+    const info = state.metadata;
+    if (!info) return '';
+    const parts = [t('精选片库 ' + catalog.length + ' 部 · 当前 ' + info.relevantCount + ' 部更契合你的选择。', catalog.length + ' films in this collection · ' + info.relevantCount + ' fit your choices closely.')];
+    if (state.lastRefresh) parts.push(t('本次换入 ' + info.changedCount + ' 部，其中 ' + info.freshCount + ' 部此前未推荐。', info.changedCount + ' changed in this selection; ' + info.freshCount + ' have not been recommended before.'));
+    if (info.alternativeCount === 0) parts.push(t('这些影片已全部展示，可调整类型、片长或地区探索更多。', 'These films are all shown. Edit genres, running time or regions to explore more.'));
+    else if (info.unseenCount === 0) parts.push(t('契合的影片均已推荐过，接下来会轮换较早出现的作品。', 'All close matches have been recommended; further selections rotate earlier films.'));
+    else parts.push(t('还有 ' + info.unseenCount + ' 部未推荐，换组会优先带来新选择。', info.unseenCount + ' close matches remain unseen; another selection prioritizes them.'));
+    if (info.shortfall) parts.push(t('本组共 ' + state.batch.length + ' 部，类型、片长与地区条件保持不变。', state.batch.length + (state.batch.length === 1 ? ' film' : ' films') + ' in this selection. Your genre, time and region choices stay in place.'));
+    return parts.join(' ');
   }
 
   function ratingMarkup(entry) {
@@ -304,8 +329,13 @@
     }
     const movie = entry.movie;
     const source = safeLink(movie.source);
-    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '"><div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.rationale || entry.shortReason) + '</p><p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div></div><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span></span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button></div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate)) + '" alt="" width="80" height="120" draggable="false"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div><p class="batch-notice">' + (state.metadata?.shortfall ? t('当前条件下找到 ' + state.batch.length + ' 部，类型、片长与地区条件保持不变。', state.batch.length + (state.batch.length === 1 ? ' film fits' : ' films fit') + ' these choices. Your genre, time and region choices stay in place.') : t('为你选出 7 部 · 契合心情，高分优先', '7 films for this moment · Mood first, sourced high ratings preferred')) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch">' + t('换一组故事', 'Another selection') + '</button></div></section>';
-    state.recommendedIds = [...new Set([...state.recommendedIds, ...state.batch.map(item => item.movie.id)])];
+    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '"><div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.rationale || entry.shortReason) + '</p><p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div></div><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span></span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button></div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate)) + '" alt="" width="80" height="120" draggable="false"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div><p class="batch-notice" role="status" aria-live="polite">' + esc(batchNotice()) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch" ' + (state.metadata?.alternativeCount === 0 ? 'disabled' : '') + '>' + (state.metadata?.alternativeCount === 0 ? t('暂无更多合适影片', 'No more matching films') : t('换一组故事', 'Another selection')) + '</button></div></section>';
+    if (state.recordedRound !== state.round) {
+      const shown = state.batch.map(item => item.movie.id);
+      state.recommendedIds = [...new Set([...state.recommendedIds, ...shown])];
+      state.recommendationLog = [...state.recommendationLog, ...shown].slice(-400);
+      state.recordedRound = state.round;
+    }
     updateChrome();
   }
 
@@ -326,7 +356,7 @@
     if (state.busy) return;
     state.mood = ''; state.desired = null; state.genres = []; state.maxMinutes = null; state.countries = []; state.countriesExpanded = false; state.question = 0;
     state.preview = false; state.submitted = false; state.batch = []; state.batchKey = ''; state.metadata = null;
-    state.active = 0; state.chosenId = null; state.round = 0; state.recommendedIds = [];
+    state.active = 0; state.chosenId = null; state.round = 0; state.recordedRound = 0; state.recommendedIds = []; state.recommendationLog = []; state.lastRefresh = false;
     transition(renderMood);
   }
 
@@ -492,7 +522,7 @@
       case 'edit-answers': state.question = 0; transition(renderQuestions); break;
       case 'edit-countries': state.question = questionList().findIndex(question => question.key === 'countries'); transition(renderQuestions); break;
       case 'edit-genres': state.question = questionList().findIndex(question => question.key === 'genres'); transition(renderQuestions); break;
-      case 'another-batch': if (generateBatch()) transition(renderResults, true); break;
+      case 'another-batch': if (generateBatch(true)) transition(renderResults, true); break;
     }
   });
 

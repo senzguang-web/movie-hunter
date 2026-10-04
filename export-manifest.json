@@ -4,6 +4,7 @@
     ".nojekyll",
     "README.md",
     "app.js",
+    "assets/audio/seaside-pcm.wav",
     "assets/audio/seaside.mp3",
     "assets/audio/sources.json",
     "assets/favicon.svg",

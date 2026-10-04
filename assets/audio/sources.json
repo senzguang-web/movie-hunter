@@ -35,5 +35,59 @@
       "decodedLoudnessRangeLU": 4.1,
       "inheritedReplayGain": false
     }
+  },
+  "seaside-pcm.wav": {
+    "title": "Gentle ocean waves birdsong and gull.WAV",
+    "creator": "jackmichaelking",
+    "sourcePage": "https://freesound.org/people/jackmichaelking/sounds/518637/",
+    "downloadUrl": "https://cdn.freesound.org/previews/518/518637_6089496-hq.mp3",
+    "license": "CC0 1.0 Universal",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "licenseVerifiedOn": "2026-10-04",
+    "attribution": "Gentle ocean waves birdsong and gull.WAV by jackmichaelking, via Freesound, CC0 1.0. Edited for Movie Hunter.",
+    "sourceDescription": "Field recording of calm beach waves with birdsong and distant gulls, made on a spring morning in Walton-on-the-Naze, Essex, UK, using a Zoom H6 MSH-6 stereo microphone.",
+    "sourceOriginal": {
+      "format": "WAV",
+      "durationSeconds": 115.093,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitDepth": 24
+    },
+    "purpose": "Compatibility fallback only when the normal MP3 recording cannot be decoded. Uncompressed PCM samples can be read directly without a platform MP3 decoder.",
+    "edits": [
+      "Prepared from the same processed 84-second float PCM intermediate as seaside.mp3; it is not a second transcode of the final MP3.",
+      "The shared intermediate derives from the openly available HQ MP3 preview, selecting 12–96 seconds with the existing 55 Hz high-pass, 7500 Hz low-pass and constant-gain loudness adjustment. No synthesized waves or bird calls were added.",
+      "Downmixed both stereo channels to mono, resampled from 44100 Hz to 22050 Hz using the macOS Core Audio maximum-quality sample-rate converter, and converted to signed 16-bit little-endian PCM with dither.",
+      "No additional loudness normalization, dynamic compression or trimming was applied. The complete 84 seconds and natural wave dynamics are retained. Website playback supplies fades and the loop overlap."
+    ],
+    "output": {
+      "durationSeconds": 84.0,
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "bitDepth": 16,
+      "formatTag": 1,
+      "blockAlign": 2,
+      "byteRate": 44100,
+      "mime": "audio/wav",
+      "sizeBytes": 3704444,
+      "sha256": "98de01ca8b5f737a0eaaa318a548cdb4f4371d183bba8700f5d85bff0c66748e",
+      "samplePeakDBFS": -10.072,
+      "rmsDBFS": -27.899,
+      "clippedSamples": 0
+    },
+    "qualityFlags": {
+      "fallbackOnly": true,
+      "uncompressedPCM": true,
+      "platformMP3DecoderRequired": false,
+      "originalStereoWidthPreserved": false,
+      "sourceDerivedFromLossyPreview": true,
+      "fullDurationPreserved": true,
+      "additionalDynamicCompression": false,
+      "sampleClippingDetected": false,
+      "sourceMonoRmsDBFS": -27.89786766416934,
+      "sourceMonoToOutputRmsDifferenceDB": -0.0011,
+      "auditionVerified": false,
+      "auditionNote": "Format, duration, samples, level and absence of clipping were verified programmatically. Live browser playback and subjective listening have not been verified."
+    }
   }
 }

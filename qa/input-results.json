@@ -1,0 +1,6 @@
+{
+  "imeEnter": "passed",
+  "shiftEnter": "passed",
+  "mobileTaps": "passed",
+  "swipeAndPointerCancel": "passed via synthetic pointer events"
+}

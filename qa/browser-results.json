@@ -1,0 +1,31 @@
+{
+  "one_zero_selection_locale": "passed",
+  "contrast": {
+    "thumbnail": {
+      "color": "rgb(169, 181, 195)",
+      "opacity": 1,
+      "background": "rgb(0, 0, 0)",
+      "ratioOnBlack": 10.08
+    },
+    "counter": {
+      "color": "rgb(154, 165, 180)",
+      "opacity": 1,
+      "background": "rgb(0, 0, 0)",
+      "ratioOnBlack": 8.42
+    }
+  },
+  "filmSwitchSeconds": 0.073,
+  "keyboard_mobile_320_zoom_layout_rapid": "passed (720 CSS px reflow; not native browser zoom)",
+  "refresh_exhaustion_reset": {
+    "roundSizes": [
+      7,
+      7,
+      5
+    ],
+    "uniqueFilms": 19
+  },
+  "multifilter_browser": "passed; full 256-query engine matrix separately",
+  "interruptions": "resize, reduced-motion change, synthetic background/foreground events passed; real OS tab suspension unrun",
+  "broken_images": "passed navigation/selection; accessible alt remains",
+  "pageErrors": []
+}

@@ -1,5 +1,5 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../miniprogram/lib/recommend'), require('./data/catalog'));
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./miniprogram/lib/recommend'), require('./data/catalog'));
   else root.MovieHunterWebEngine = factory(root.MovieHunterRecommend, root.MovieHunterWorldCatalog || root.MovieHunterCatalog);
 }(typeof window !== 'undefined' ? window : this, function (recommendEngine, catalog) {
   'use strict';
@@ -389,7 +389,7 @@
     var query = buildQuery(input);
     var topics = batchTextTopics(query.note).positive;
     var strongest = candidates.reduce(function (best, entry) { return Math.max(best, entry.relevanceScore); }, 0);
-    // Refresh explores genuinely fitting alternatives, not every film that merely
+    // Every batch uses the same fitting pool, not every film that merely
     // passes duration/region filters. An explicit viewing goal is a meaningful fit;
     // close-scoring stories can also qualify. Topic requests still need a topic match.
     var relevant = candidates.filter(function (entry) {
@@ -400,7 +400,7 @@
     // Keep the existing relevance/rating order and never fill a short batch with
     // old films or weaker matches. A new search can still find familiar favorites.
     var unseen = relevant.filter(function (entry) { return recommended.indexOf(entry.movie.id) === -1; });
-    var selection = settings.refresh ? unseen : candidates;
+    var selection = settings.refresh ? unseen : relevant;
     var entries = selection.slice(0, size);
     var selectedIds = entries.map(function (entry) { return entry.movie.id; });
     var repeatedCount = entries.filter(function (entry) { return recommended.indexOf(entry.movie.id) !== -1; }).length;

@@ -39,8 +39,8 @@
     catch (_) { return ''; }
   }
 
-  function poster(movie) {
-    const source = movie.posterUrl || '/miniprogram' + movie.poster;
+  function poster(movie, thumbnail = false) {
+    const source = (thumbnail && movie.posterThumbUrl) || movie.posterOptimizedUrl || movie.posterUrl || '/miniprogram' + movie.poster;
     return source.startsWith('/') ? new URL((window.MovieHunterDeployment?.assetBase || '../') + source.replace(/^\/+/, ''), window.location.href).href : source;
   }
 
@@ -130,7 +130,7 @@
     } finally { clearTimeout(timeout); }
   }
 
-  async function transition(render, keepPosition = false) {
+  async function transition(render, keepPosition = false, immediate = false) {
     if (state.busy) return;
     state.busy = true;
     window.MovieHunterInputStardust?.clear();
@@ -139,17 +139,17 @@
     const index = focused?.dataset.film;
     const scroll = window.scrollY;
     const railScroll = stage.querySelector('.film-thumbnails')?.scrollLeft || 0;
-    let particles = particleController();
+    let particles = immediate ? null : particleController();
     const originalStyle = stage.getAttribute('style');
     stage.setAttribute('aria-busy', 'true');
     stage.classList.add('is-leaving');
     try {
       const left = await particleStep(particles, 'leave', keepPosition, originalStyle);
       if (!left || particleController() !== particles) particles = null;
-      if (!left && !motionOff()) await new Promise(resolve => setTimeout(resolve, 180));
+      if (!immediate && !left && !motionOff()) await new Promise(resolve => setTimeout(resolve, 180));
       render();
       stage.classList.remove('is-leaving');
-      if (!particles && !motionOff()) stage.classList.add('is-entering');
+      if (!immediate && !particles && !motionOff()) stage.classList.add('is-entering');
       if (keepPosition) {
         window.scrollTo({ top: scroll, behavior: 'instant' });
         const rail = stage.querySelector('.film-thumbnails');
@@ -170,7 +170,7 @@
         focusHeading();
       }
       const entered = await particleStep(particleController() === particles ? particles : null, 'enter', keepPosition, originalStyle);
-      if (!entered && !motionOff()) {
+      if (!immediate && !entered && !motionOff()) {
         stage.classList.add('is-entering');
         await new Promise(resolve => setTimeout(resolve, 200));
       }
@@ -324,13 +324,13 @@
     const entry = state.batch[state.active];
     const header = '<div class="results-header"><p class="eyebrow">' + t('此刻的电影宇宙', 'YOUR CINEMA ORBIT') + '</p><h1>' + t('让一个故事，靠近你。', 'Let a story find you.') + '</h1><p class="lead">' + t('先听见你的心情，再遇见值得看的电影。', 'Your mood comes first. A good story follows.') + '</p>' + previewNote() + '</div><p class="country-result-summary"><button type="button" class="text-button genre-current" data-action="edit-genres">' + esc(t('类型：', 'Genres: ') + genresSummary()) + '<span aria-hidden="true"> ↗</span></button><button type="button" class="text-button country-current" data-action="edit-countries">' + esc(t('国家／地区：', 'Regions: ') + countriesSummary()) + '<span aria-hidden="true"> ↗</span></button></p>';
     if (!entry) {
-      stage.innerHTML = '<section class="results-panel">' + header + '<div class="empty-state"><h2>' + t('这次没有符合条件的电影。', 'No films fit these choices yet.') + '</h2><p>' + t('当前精选片库有限；我们会保留你的类型、片长与地区条件。', 'This curated collection is limited. Your genre, running-time and region choices stay in place.') + '</p><button class="primary-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button></div></section>';
+      stage.innerHTML = '<section class="results-panel">' + header + '<div class="empty-state"><h2>' + t('这次没有符合条件的电影。', 'No films fit these choices yet.') + '</h2><p>' + t('当前精选片库中，没有同时契合心情与筛选条件的电影。可以修改心情或调整选择。', 'No films in this collection fit both your mood and filters. Try editing your mood or choices.') + '</p><button class="primary-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button></div></section>';
       updateChrome();
       return;
     }
     const movie = entry.movie;
     const source = safeLink(movie.source);
-    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '"><div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.rationale || entry.shortReason) + '</p><p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div></div><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span></span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button></div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate)) + '" alt="" width="80" height="120" draggable="false"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div><p class="batch-notice" role="status" aria-live="polite">' + esc(batchNotice()) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch" ' + (state.metadata?.alternativeCount === 0 ? 'disabled' : '') + '>' + (state.metadata?.alternativeCount === 0 ? t('没有更多新电影', 'No more new films') : t('换一组故事', 'Another selection')) + '</button></div></section>';
+    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '"><div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.rationale || entry.shortReason) + '</p><p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div></div><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span></span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button></div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate, true)) + '" alt="" width="80" height="120" loading="lazy" decoding="async" draggable="false"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div><p class="batch-notice" role="status" aria-live="polite">' + esc(batchNotice()) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch" ' + (state.metadata?.alternativeCount === 0 ? 'disabled' : '') + '>' + (state.metadata?.alternativeCount === 0 ? t('没有更多新电影', 'No more new films') : t('换一组故事', 'Another selection')) + '</button></div></section>';
     if (state.recordedRound !== state.round) {
       const shown = state.batch.map(item => item.movie.id);
       state.recommendedIds = [...new Set([...state.recommendedIds, ...shown])];
@@ -392,7 +392,11 @@
     const next = (index + state.batch.length) % state.batch.length;
     if (next === state.active) return;
     state.active = next;
-    transition(renderResults, true).then(() => announcement(title(state.batch[state.active].movie) + t('，第 ' + (state.active + 1) + ' 部，共 ' + state.batch.length + ' 部', ', ' + (state.active + 1) + ' of ' + state.batch.length)));
+    // Browsing films should preserve position without the full scene-transition lock.
+    transition(renderResults, true, true).then(() => {
+      if (!motionOff()) stage.querySelector('.film-stage')?.animate?.([{ opacity: .65 }, { opacity: 1 }], { duration: 160 });
+      announcement(title(state.batch[state.active].movie) + t('，第 ' + (state.active + 1) + ' 部，共 ' + state.batch.length + ' 部', ', ' + (state.active + 1) + ' of ' + state.batch.length));
+    });
   }
 
   function fillPrompt() {

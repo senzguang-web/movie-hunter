@@ -46,3 +46,32 @@ body[data-theme=stardust] h1,body[data-theme=stardust] .film-title{text-shadow:0
 #sound-toggle[data-playing=true]:before{background:#b3dfdf;box-shadow:0 0 7px #a9dede66}
 .mood-input{caret-color:#d1edf1}
 @media(max-width:650px){.lab-controls{flex-wrap:wrap;justify-content:flex-end;row-gap:2px}.lab-header>a{flex-shrink:0}}
+
+/* Keep labels legible independently of the atmospheric artwork. */
+.thumb{opacity:1;color:#a9b5c3}
+.thumb img{opacity:.55}
+.thumb.active img,.thumb:hover img,.thumb:focus-visible img{opacity:1}
+.thumb span{font-size:11px}
+.film-counter span{color:#9aa5b4}
+.film-nav button{width:44px;height:44px;min-height:44px;padding:0}
+.lab-controls button,.lab-footer button,.text-button{min-height:44px}
+.lab-controls button{min-width:44px}
+.batch-notice{font-size:12px;color:#9aa5b4;max-width:720px;margin:20px auto 8px}
+@media(max-width:480px){
+  .lab-header{gap:8px;padding:14px 16px}.lab-controls{gap:6px}
+  .stage-results{padding-inline:20px}
+  .film-stage{grid-template-columns:110px minmax(0,1fr);gap:12px 20px;align-items:start}
+  .hero-poster-wrap{grid-column:1;grid-row:1/4;margin-bottom:24px}
+  .hero-copy{display:contents}
+  .hero-kicker,.film-title,.film-meta{grid-column:2;margin:0}
+  .hero-kicker{align-self:end;line-height:1.8}
+  .film-title{font-size:26px;overflow-wrap:anywhere}
+  .film-meta{font-size:11px;align-self:start}
+  .film-reason,.film-synopsis,.rating-evidence,.film-actions{grid-column:1/-1;margin:0}
+  .film-reason{font-size:14px;line-height:1.9}
+  .film-synopsis{font-size:13px;line-height:1.8}
+  .rating-evidence{font-size:11px}.rating-caption{font-size:10px}
+  .film-actions{margin-top:6px;gap:20px}.film-actions .primary-button{font-size:12px}
+  .batch-notice{text-align:left}
+  .film-thumbnails{padding-inline:8px}
+}

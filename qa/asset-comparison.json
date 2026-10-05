@@ -1,0 +1,120 @@
+{
+  "before": {
+    "thumb": {
+      "color": "rgb(238, 238, 241)",
+      "opacity": "0.45"
+    },
+    "counter": "rgb(100, 111, 125)",
+    "posters": [
+      {
+        "url": "http://127.0.0.1:8081/assets/posters/paddington-2.jpg",
+        "bytes": 1532080
+      }
+    ],
+    "images": [
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/soul.jpg",
+        "width": 260,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/soul.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/intouchables.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/singin-rain.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/totoro.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/groundhog-day.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/miniprogram/assets/posters/perfect-days.jpg",
+        "width": 69,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8081/assets/posters/paddington-2.jpg",
+        "width": 69,
+        "loading": "auto"
+      }
+    ],
+    "contrastOnBlack": {
+      "thumbnail": 3.95,
+      "counter": 4.11
+    }
+  },
+  "after": {
+    "thumb": {
+      "color": "rgb(169, 181, 195)",
+      "opacity": "1"
+    },
+    "counter": "rgb(154, 165, 180)",
+    "posters": [
+      {
+        "url": "http://127.0.0.1:8080/assets/posters/paddington-2-thumb.webp",
+        "bytes": 8822
+      }
+    ],
+    "images": [
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/soul.jpg",
+        "width": 260,
+        "loading": "auto"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/soul.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/intouchables.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/singin-rain.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/totoro.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/groundhog-day.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/miniprogram/assets/posters/perfect-days.jpg",
+        "width": 69,
+        "loading": "lazy"
+      },
+      {
+        "src": "http://127.0.0.1:8080/assets/posters/paddington-2-thumb.webp",
+        "width": 69,
+        "loading": "lazy"
+      }
+    ],
+    "contrastOnBlack": {
+      "thumbnail": 10.08,
+      "counter": 8.42
+    }
+  }
+}

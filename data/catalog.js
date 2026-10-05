@@ -1,5 +1,5 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../miniprogram/lib/catalog.js'));
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../miniprogram/lib/catalog.js'));
   else root.MovieHunterWorldCatalog = factory(root.MovieHunterCatalog || []);
 }(typeof window !== 'undefined' ? window : this, function (base) {
   'use strict';
@@ -75,6 +75,8 @@
     },
     'paddington-2': {
       posterUrl: '/assets/posters/paddington-2.jpg',
+      posterOptimizedUrl: '/assets/posters/paddington-2.webp',
+      posterThumbUrl: '/assets/posters/paddington-2-thumb.webp',
       countries: ['GB', 'FR', 'LU'], titleEn: 'Paddington 2', directorEn: 'Paul King',
       pitchEn: 'An unexpected mishap interrupts Paddington’s plans for a family gift, drawing his London neighbors together through kindness.',
       angleZh: '一只熊的善意和邻里冒险，带来不费力的温暖与笑意', angleEn: 'A bear’s kindness and neighborhood adventures offer easy warmth and laughter',

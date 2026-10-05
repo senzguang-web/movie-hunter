@@ -1,0 +1,10 @@
+{
+  "broken": {
+    "resultsReadySeconds": 2.16,
+    "navigationWhileArtworkUnavailable": "passed"
+  },
+  "slow": {
+    "resultsReadySeconds": 2.314,
+    "navigationWhileArtworkUnavailable": "passed"
+  }
+}

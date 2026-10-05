@@ -12,6 +12,18 @@
     "evidence": "The official STUDIOCANAL Intl UK campaign page directly embeds this CDN image as its Paddington 2 one-sheet. The page footer identifies STUDIOCANAL and links to the studio's terms and website.",
     "assetType": "official UK theatrical portrait one-sheet",
     "modifications": "None; original downloaded file.",
-    "rights": "Copyright remains with STUDIOCANAL and the named rights holders; this source record is provenance, not a public-domain or redistribution-license claim."
+    "rights": "Copyright remains with STUDIOCANAL and the named rights holders; this source record is provenance, not a public-domain or redistribution-license claim.",
+    "derivatives": [
+      {
+        "localPath": "assets/posters/paddington-2.webp",
+        "modifications": "Proportional resize and WebP encoding from the unchanged original; quality 82.",
+        "sha256": "034b0c1be392dd36e8fad3f10c4fda855b6ece48ee851f8311cdf692dd2783b8"
+      },
+      {
+        "localPath": "assets/posters/paddington-2-thumb.webp",
+        "modifications": "Proportional resize and WebP encoding from the unchanged original; quality 82.",
+        "sha256": "80145cdc1510178a847b07c217bc58c08f5de0f139839c02f28732e87b43b7fa"
+      }
+    ]
   }
 }

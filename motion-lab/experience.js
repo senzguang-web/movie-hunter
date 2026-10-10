@@ -33,6 +33,13 @@
   let touch = null;
   let suppressClickUntil = 0;
   let dialogTrigger = null;
+  let filmAnimation = null;
+
+  function cancelFilmAnimation() {
+    const animation = filmAnimation;
+    filmAnimation = null;
+    if (animation) animation.cancel();
+  }
 
   function safeLink(source) {
     try { const url = new URL(source); return url.protocol === 'https:' ? url.href : ''; }
@@ -77,7 +84,10 @@
     pause.textContent = motionOff() ? t('动态已暂停', 'Motion paused') : t('暂停动态', 'Pause motion');
     pause.setAttribute('aria-pressed', String(motionOff()));
     pause.disabled = reducedMotion.matches;
-    pause.title = reducedMotion.matches ? t('已遵循系统的减少动态效果设置', 'Following your reduced-motion preference') : '';
+    const motionLabel = reducedMotion.matches ? t('已遵循系统的减少动态效果设置', 'Following your reduced-motion preference') : motionOff() ? t('恢复星空与页面动态', 'Resume the starfield and page motion') : t('暂停星空与页面动态', 'Pause the starfield and page motion');
+    pause.title = motionLabel;
+    pause.setAttribute('aria-label', motionLabel);
+    if (motionOff()) cancelFilmAnimation();
     document.getElementById('prompt-open').textContent = t('动效提示词', 'Motion prompt');
     document.getElementById('prompt-open').hidden = publicMode;
     const replay = document.getElementById('particle-replay');
@@ -130,8 +140,9 @@
     } finally { clearTimeout(timeout); }
   }
 
-  async function transition(render, keepPosition = false, immediate = false) {
+  async function transition(render, keepPosition = false) {
     if (state.busy) return;
+    cancelFilmAnimation();
     state.busy = true;
     window.MovieHunterInputStardust?.clear();
     const focused = document.activeElement;
@@ -139,17 +150,17 @@
     const index = focused?.dataset.film;
     const scroll = window.scrollY;
     const railScroll = stage.querySelector('.film-thumbnails')?.scrollLeft || 0;
-    let particles = immediate ? null : particleController();
+    let particles = particleController();
     const originalStyle = stage.getAttribute('style');
     stage.setAttribute('aria-busy', 'true');
     stage.classList.add('is-leaving');
     try {
       const left = await particleStep(particles, 'leave', keepPosition, originalStyle);
       if (!left || particleController() !== particles) particles = null;
-      if (!immediate && !left && !motionOff()) await new Promise(resolve => setTimeout(resolve, 180));
+      if (!left && !motionOff()) await new Promise(resolve => setTimeout(resolve, 180));
       render();
       stage.classList.remove('is-leaving');
-      if (!immediate && !particles && !motionOff()) stage.classList.add('is-entering');
+      if (!particles && !motionOff()) stage.classList.add('is-entering');
       if (keepPosition) {
         window.scrollTo({ top: scroll, behavior: 'instant' });
         const rail = stage.querySelector('.film-thumbnails');
@@ -170,7 +181,7 @@
         focusHeading();
       }
       const entered = await particleStep(particleController() === particles ? particles : null, 'enter', keepPosition, originalStyle);
-      if (!immediate && !entered && !motionOff()) {
+      if (!entered && !motionOff()) {
         stage.classList.add('is-entering');
         await new Promise(resolve => setTimeout(resolve, 200));
       }
@@ -228,12 +239,19 @@
     }).join('');
   }
 
+  function compactSelection(values, label, empty) {
+    if (!values.length) return empty;
+    const summary = values.slice(0, 2).map(label).join(t('、', ', '));
+    const remaining = values.length - 2;
+    return summary + (remaining > 0 ? t('，另 ' + remaining + ' 项', ', +' + remaining + ' more') : '');
+  }
+
   function countriesSummary() {
-    return state.countries.length ? state.countries.map(countryLabel).join(t('、', ', ')) : t('不限国家／地区', 'Anywhere');
+    return compactSelection(state.countries, countryLabel, t('不限国家／地区', 'Anywhere'));
   }
 
   function genresSummary() {
-    return state.genres.length ? state.genres.map(genreLabel).join(t('、', ', ')) : t('不限类型', 'Any genre');
+    return compactSelection(state.genres, genreLabel, t('不限类型', 'Any genre'));
   }
 
   function genresStatus() {
@@ -271,7 +289,7 @@
     const more = question.additionalOptions || [];
     const countries = question.multi ? (question.key === 'genres' ? '<p class="genre-selection-status" id="genre-selection-status" role="status" aria-live="polite">' + esc(genresStatus()) + '</p>' : '<p class="country-selection-status" id="country-selection-status" role="status" aria-live="polite">' + esc(countriesStatus()) + '</p>') : '';
     const moreMarkup = more.length ? '<details class="country-more" ' + (state.countriesExpanded ? 'open' : '') + '><summary>' + countryMoreLabel() + '</summary><div class="option-list country-options">' + optionMarkup(question, more) + '</div></details>' : '';
-    const orderNote = question.key === 'countries' ? '<p class="country-order-note">' + t('常用地区按本片库已核验的高分影片数量排序（豆瓣／IMDb ≥ 8.0），其余地区均可展开选择。', 'Common regions are ordered by this collection’s sourced Douban / IMDb scores of 8.0 or higher. All other regions remain available below.') + '</p>' : '';
+    const orderNote = question.key === 'countries' ? '<details class="country-order-details"><summary>' + t('地区排序依据', 'How regions are ordered') + '</summary><p class="country-order-note">' + t('常用地区按本片库已核验的高分影片数量排序（豆瓣／IMDb ≥ 8.0），其余地区均可展开选择。', 'Common regions are ordered by this collection’s sourced Douban / IMDb scores of 8.0 or higher. All other regions remain available below.') + '</p></details>' : '';
     stage.innerHTML = '<section class="question-panel' + (question.multi ? (question.key === 'genres' ? ' genre-panel' : ' country-panel') : '') + '"><p class="eyebrow">' + (question.key === 'genres' ? t('选择电影类型', 'CHOOSE YOUR GENRES') : t('找到此刻的共鸣', 'FIND YOUR FEELING')) + '</p><div class="step-dots" role="list" aria-label="' + t('第 ' + (state.question + 1) + ' 题，共 ' + questions.length + ' 题', 'Question ' + (state.question + 1) + ' of ' + questions.length) + '">' + questions.map((item, index) => '<span role="listitem" class="' + (index === state.question ? 'active' : index < state.question ? 'done' : '') + '"' + (index === state.question ? ' aria-current="step"' : '') + '>' + stepLabels[item.key] + '</span>').join('') + '</div>' + previewNote() + '<h1 id="lab-question-title">' + esc(question.title) + '</h1><p class="question-help" id="lab-question-help">' + esc(question.help) + '</p>' + countries + '<div class="question-choices" role="' + (question.multi ? 'group' : 'radiogroup') + '" aria-labelledby="lab-question-title" aria-describedby="lab-question-help"><div class="option-list' + (question.multi ? (question.key === 'genres' ? ' genre-options' : ' country-options') : '') + '">' + optionMarkup(question, question.options) + '</div>' + moreMarkup + '</div>' + orderNote + '<div class="question-actions"><button class="text-button" data-action="back-question">' + arrow('left') + (state.question ? t('上一题', 'Back') : t('修改心情', 'Edit mood')) + '</button><button class="primary-button" data-action="next-question" ' + (state[question.key] === null ? 'disabled' : '') + '>' + (state.question === questions.length - 1 ? t('遇见电影', 'Find my films') : t('继续', 'Continue')) + arrow('right') + '</button></div></section>';
     updateChrome();
   }
@@ -303,12 +321,10 @@
   function batchNotice() {
     const info = state.metadata;
     if (!info) return '';
-    const parts = [t('精选片库 ' + catalog.length + ' 部 · 当前 ' + info.relevantCount + ' 部更契合你的选择。', catalog.length + ' films in this collection · ' + info.relevantCount + ' fit your choices closely.')];
-    if (state.lastRefresh) parts.push(t('本次换入 ' + info.freshCount + ' 部此前未推荐的电影。', info.freshCount + ' films in this selection have not been recommended before.'));
-    if (info.alternativeCount === 0) parts.push(t('符合当前选择的电影已全部推荐过，可调整类型、片长或地区探索更多。', 'All matching films have been recommended. Edit genres, running time or regions to explore more.'));
-    else parts.push(t('还有 ' + info.unseenCount + ' 部未推荐，换组不会重复本次体验中已出现的电影。', info.unseenCount + ' matching films remain. Another selection will not repeat films from this experience.'));
-    if (info.shortfall) parts.push(t('本组共 ' + state.batch.length + ' 部，类型、片长与地区条件保持不变。', state.batch.length + (state.batch.length === 1 ? ' film' : ' films') + ' in this selection. Your genre, time and region choices stay in place.'));
-    return parts.join(' ');
+    const count = state.batch.length;
+    const summary = t('精选片库 ' + catalog.length + ' 部 · 本组 ' + count + ' 部', catalog.length + ' curated films · ' + count + ' in this selection');
+    if (info.alternativeCount === 0) return summary + t(' · 符合条件的电影已全部推荐，可调整选择探索更多。', ' · All matching films have been shown. Edit your choices to explore more.');
+    return summary + t(' · 还有 ' + info.unseenCount + ' 部未推荐。换组不重复，不足 7 部时不以旧片补齐。', ' · ' + info.unseenCount + ' unseen. No repeats when refreshing; smaller selections stay unpadded.');
   }
 
   function ratingMarkup(entry) {
@@ -318,19 +334,29 @@
     return '<p class="rating-evidence"><a href="' + esc(safeLink(quality.url)) + '" target="_blank" rel="noopener noreferrer">' + platform + ' <strong>' + esc(quality.value) + '</strong><span> / 10 ↗</span></a><span class="rating-caption">' + t('已核验快照', 'Sourced snapshot') + (quality.checkedAt ? ' · ' + esc(String(quality.checkedAt).slice(0, 10)) : '') + '</span></p>';
   }
 
+  function filmCounterMarkup() {
+    return String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span>';
+  }
+
+  function featuredFilmMarkup(entry) {
+    const movie = entry.movie;
+    const source = safeLink(movie.source);
+    const context = entry.rationale ? '<details class="film-context"><summary class="film-context-summary">' + t('为什么推荐这部', 'Why this film fits') + '</summary><p class="film-context-copy">' + esc(entry.rationale) + '</p></details>' : '';
+    return '<div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.shortReason || entry.rationale) + '</p>' + context + '<p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" data-film-source href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div>';
+  }
+
   function renderResults() {
+    cancelFilmAnimation();
     state.phase = 'results';
     stage.className = 'stage stage-results';
     const entry = state.batch[state.active];
-    const header = '<div class="results-header"><p class="eyebrow">' + t('此刻的电影宇宙', 'YOUR CINEMA ORBIT') + '</p><h1>' + t('让一个故事，靠近你。', 'Let a story find you.') + '</h1><p class="lead">' + t('先听见你的心情，再遇见值得看的电影。', 'Your mood comes first. A good story follows.') + '</p>' + previewNote() + '</div><p class="country-result-summary"><button type="button" class="text-button genre-current" data-action="edit-genres">' + esc(t('类型：', 'Genres: ') + genresSummary()) + '<span aria-hidden="true"> ↗</span></button><button type="button" class="text-button country-current" data-action="edit-countries">' + esc(t('国家／地区：', 'Regions: ') + countriesSummary()) + '<span aria-hidden="true"> ↗</span></button></p>';
+    const header = '<div class="results-header"><p class="eyebrow">' + t('此刻的电影宇宙', 'YOUR CINEMA ORBIT') + '</p><h1>' + t('为此刻，留一部电影。', 'A film for this moment.') + '</h1>' + previewNote() + '</div><p class="country-result-summary"><button type="button" class="text-button genre-current" data-action="edit-genres">' + esc(t('类型：', 'Genres: ') + genresSummary()) + '<span aria-hidden="true"> ↗</span></button><button type="button" class="text-button country-current" data-action="edit-countries">' + esc(t('国家／地区：', 'Regions: ') + countriesSummary()) + '<span aria-hidden="true"> ↗</span></button></p>';
     if (!entry) {
       stage.innerHTML = '<section class="results-panel">' + header + '<div class="empty-state"><h2>' + t('这次没有符合条件的电影。', 'No films fit these choices yet.') + '</h2><p>' + t('当前精选片库中，没有同时契合心情与筛选条件的电影。可以修改心情或调整选择。', 'No films in this collection fit both your mood and filters. Try editing your mood or choices.') + '</p><button class="primary-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button></div></section>';
       updateChrome();
       return;
     }
-    const movie = entry.movie;
-    const source = safeLink(movie.source);
-    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '"><div class="hero-poster-wrap"><img class="hero-poster" src="' + esc(poster(movie)) + '" alt="' + esc(title(movie) + t('海报', ' poster')) + '" width="600" height="900" draggable="false"><span class="poster-tag">' + (state.active === 0 ? t('此刻首选', 'YOUR FIRST PICK') : t('另一段故事', 'ANOTHER STORY')) + '</span></div><div class="hero-copy"><p class="hero-kicker">' + String(state.active + 1).padStart(2, '0') + ' / ' + String(state.batch.length).padStart(2, '0') + ' · ' + t('为此刻而选', 'FOR THIS MOMENT') + '</p><h2 class="film-title">' + esc(title(movie)) + '</h2><p class="film-meta">' + esc(movieMeta(movie)) + '</p><p class="film-reason">' + esc(entry.rationale || entry.shortReason) + '</p><p class="film-synopsis">' + esc(t(movie.pitch, movie.pitchEn || movie.pitch)) + '</p>' + ratingMarkup(entry) + '<div class="film-actions"><button class="primary-button" data-action="choose">' + t('就看这部', 'This is the one') + arrow('right') + '</button>' + (source ? '<a class="text-button" href="' + esc(source) + '" target="_blank" rel="noopener noreferrer">' + t('影片资料 ↗', 'Film source ↗') + '</a>' : '') + '</div></div></div><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + String(state.active + 1).padStart(2, '0') + ' <span>/ ' + String(state.batch.length).padStart(2, '0') + '</span></span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button></div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate, true)) + '" alt="" width="80" height="120" loading="lazy" decoding="async" draggable="false"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div><p class="batch-notice" role="status" aria-live="polite">' + esc(batchNotice()) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch" ' + (state.metadata?.alternativeCount === 0 ? 'disabled' : '') + '>' + (state.metadata?.alternativeCount === 0 ? t('没有更多新电影', 'No more new films') : t('换一组故事', 'Another selection')) + '</button></div></section>';
+    stage.innerHTML = '<section class="results-panel">' + header + '<div class="film-browser"><div class="film-nav"><button class="secondary-button" data-action="previous-film" aria-label="' + t('上一部电影', 'Previous film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('left') + '</button><span class="film-counter">' + filmCounterMarkup() + '</span><button class="secondary-button" data-action="next-film" aria-label="' + t('下一部电影', 'Next film') + '" ' + (state.batch.length < 2 ? 'disabled' : '') + '>' + arrow('right') + '</button><span class="browse-hint">' + t('左右滑动 · 方向键切换', 'Swipe or use the arrow keys') + '</span></div><div class="film-stage" tabindex="-1" aria-label="' + t('主推荐电影', 'Featured film') + '">' + featuredFilmMarkup(entry) + '</div><div class="film-thumbnails" role="group" aria-label="' + t('本次推荐电影', 'Films in this selection') + '">' + state.batch.map(({ movie: candidate }, index) => '<button class="thumb ' + (index === state.active ? 'active' : '') + '" data-film="' + index + '" aria-pressed="' + (index === state.active) + '" aria-label="' + esc(t('切换到《' + title(candidate) + '》', 'Show ' + title(candidate))) + '"><img src="' + esc(poster(candidate, true)) + '" alt="" width="80" height="120" draggable="false" loading="lazy" decoding="async"><span>' + esc(title(candidate)) + '</span></button>').join('') + '</div></div><p class="batch-notice" role="status" aria-live="polite">' + esc(batchNotice()) + '</p><div class="result-tools"><button class="text-button" data-action="edit-answers">' + t('调整选择', 'Edit choices') + '</button><button class="text-button" data-action="another-batch" ' + (state.metadata?.alternativeCount === 0 ? 'disabled' : '') + '>' + (state.metadata?.alternativeCount === 0 ? t('没有更多新电影', 'No more new films') : t('换一组故事', 'Another selection')) + '</button></div></section>';
     if (state.recordedRound !== state.round) {
       const shown = state.batch.map(item => item.movie.id);
       state.recommendedIds = [...new Set([...state.recommendedIds, ...shown])];
@@ -387,16 +413,56 @@
     }
   }
 
-  function switchFilm(index) {
-    if (state.busy || state.phase !== 'results' || state.batch.length < 2) return;
-    const next = (index + state.batch.length) % state.batch.length;
+  function switchFilm(index, trigger = null) {
+    if (state.busy || state.phase !== 'results' || state.batch.length < 2 || !Number.isInteger(index)) return;
+    const next = ((index % state.batch.length) + state.batch.length) % state.batch.length;
     if (next === state.active) return;
+    const featured = stage.querySelector('.film-stage');
+    if (!featured) return;
+    cancelFilmAnimation();
+    const focused = document.activeElement;
+    const focusInside = featured.contains(focused);
+    const rail = stage.querySelector('.film-thumbnails');
+    const anchorCandidate = trigger?.dataset.film !== undefined ? trigger : focused?.dataset.film !== undefined ? focused : null;
+    const anchor = anchorCandidate && rail?.contains(anchorCandidate) ? anchorCandidate : null;
+    const anchorTop = anchor?.getBoundingClientRect().top;
+    const focusSelector = focused?.dataset.action === 'choose' ? '[data-action="choose"]'
+      : focused?.matches?.('[data-film-source]') ? '[data-film-source]'
+      : focused?.matches?.('.film-context-summary') ? '.film-context-summary' : null;
+    const scroll = window.scrollY;
     state.active = next;
-    // Browsing films should preserve position without the full scene-transition lock.
-    transition(renderResults, true, true).then(() => {
-      if (!motionOff()) stage.querySelector('.film-stage')?.animate?.([{ opacity: .65 }, { opacity: 1 }], { duration: 160 });
-      announcement(title(state.batch[state.active].movie) + t('，第 ' + (state.active + 1) + ' 部，共 ' + state.batch.length + ' 部', ', ' + (state.active + 1) + ' of ' + state.batch.length));
+    // Only the main film changes. The surrounding controls, scroll position and
+    // batch history stay in place, and another input can replace this immediately.
+    featured.innerHTML = featuredFilmMarkup(state.batch[next]);
+    const counter = stage.querySelector('.film-counter');
+    if (counter) counter.innerHTML = filmCounterMarkup();
+    stage.querySelectorAll('[data-film]').forEach(button => {
+      const selected = Number(button.dataset.film) === next;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', String(selected));
     });
+    if (focusInside && focused !== featured) {
+      const replacement = focusSelector ? featured.querySelector(focusSelector) : null;
+      (replacement || featured).focus({ preventScroll: true });
+    }
+    const active = rail?.querySelector('[aria-pressed="true"]');
+    if (active) {
+      const itemBounds = active.getBoundingClientRect(), railBounds = rail.getBoundingClientRect();
+      if (itemBounds.left < railBounds.left) rail.scrollLeft -= railBounds.left - itemBounds.left + 8;
+      else if (itemBounds.right > railBounds.right) rail.scrollLeft += itemBounds.right - railBounds.right + 8;
+    }
+    // Compensate for changed copy height only when the visitor is using the
+    // thumbnail rail. Arrow controls sit before the feature and keep their place.
+    const targetScroll = anchor ? window.scrollY + anchor.getBoundingClientRect().top - anchorTop : scroll;
+    if (window.scrollY !== targetScroll) window.scrollTo({ top: targetScroll, behavior: 'instant' });
+    if (!motionOff() && !document.hidden && typeof featured.animate === 'function') {
+      try {
+        const animation = featured.animate([{ opacity: .5 }, { opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.22,1,.36,1)' });
+        filmAnimation = animation;
+        animation.onfinish = () => { if (filmAnimation === animation) filmAnimation = null; };
+      } catch (_) { filmAnimation = null; /* Native content is already visible if optional animation is unavailable. */ }
+    }
+    announcement(title(state.batch[next].movie) + t('，第 ' + (next + 1) + ' 部，共 ' + state.batch.length + ' 部', ', ' + (next + 1) + ' of ' + state.batch.length));
   }
 
   function fillPrompt() {
@@ -503,6 +569,7 @@
     if (state.busy) return;
     if (button.id === 'particle-replay') { if (particleController()) transition(renderCurrent, true); return; }
     if (button.id === 'locale-toggle') {
+      cancelFilmAnimation();
       state.locale = state.locale === 'zh' ? 'en' : 'zh';
       if (state.batch.length && engine?.rankBatchCandidates) {
         const localized = new Map(engine.rankBatchCandidates(query(), {}, { seed: state.round, dateKey: day(), ratings }).map(entry => [entry.movie.id, entry]));
@@ -512,7 +579,7 @@
     }
     if (button.id === 'restart' || button.dataset.action === 'restart') { reset(); return; }
     if (button.dataset.phase) { goToPhase(button.dataset.phase); return; }
-    if (button.dataset.film !== undefined) { switchFilm(Number(button.dataset.film)); return; }
+    if (button.dataset.film !== undefined) { switchFilm(Number(button.dataset.film), button); return; }
     switch (button.dataset.action) {
       case 'back-question': if (state.question) { state.question -= 1; transition(renderQuestions); } else transition(renderMood); break;
       case 'next-question':
@@ -547,6 +614,7 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closePrompt();
   });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelFilmAnimation(); });
   reducedMotion.addEventListener('change', updateChrome);
   window.addEventListener('hashchange', () => { if (window.location.hash === '#prompt') openPrompt(); });
   renderMood();
